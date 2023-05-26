@@ -144,7 +144,7 @@ class SmartCollator():
         decoder_attention_mask = torch.concat(decoder_attention_mask, 0)
 
         # Compute the context bounds for this batch
-        boundary = np.random.uniform(self.context_sampling_bounds[0], self.context_sampling_bounds[1])
+        boundary = 0.45
         boundary_start = int(input_ids.shape[-1] * boundary)
         boundary_end = boundary_start + self.context_max_len
 

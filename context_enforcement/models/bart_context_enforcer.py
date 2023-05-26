@@ -17,6 +17,7 @@ from transformers.models.bart.modeling_bart import (
     CrossEntropyLoss,
     Seq2SeqLMOutput,
     Seq2SeqModelOutput,
+    BartEncoderLayer,
     _expand_mask,
     shift_tokens_right,
 )
@@ -46,7 +47,7 @@ class BartEncoderLayerWithEnforcer(nn.Module):
         self.final_layer_norm = nn.LayerNorm(self.embed_dim)
 
         self.context_enforcer = ContextEnforcement(self.embed_dim,
-                                                   num_heads=config.context_num_heads)
+                                                   num_heads=config.encoder_attention_heads)
         self.context_enforcer_layer_norm = nn.LayerNorm(self.embed_dim)
 
     def forward(
@@ -315,9 +316,9 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
 
         batch_encoder_attention_masks = None
         if attention_mask is not None:
-            batch_encoder_attention_masks = attention_mask[:,
-                                            context_boundary[0]:context_boundary[1]].view(-1,
-                                                                                          context_len)
+            batch_encoder_attention_masks = torch.ones((hidden_states.shape[0],context_len),dtype=torch.long,
+                                                       device= hidden_states.device)
+            #attention_mask[:,context_boundary[0]:context_boundary[1]].view(-1, context_len)
 
         if not return_dict:
             return tuple(
@@ -661,7 +662,8 @@ class BartForContextualRecovery(BartPretrainedModel):
     def strip_attention_mask(self,
                              context_boundary,
                              attention_mask):
-        batched_attention = attention_mask[:, context_boundary[0]:context_boundary[1]]
+        attn= torch.ones_like(attention_mask)
+        batched_attention =attn[:, context_boundary[0]:context_boundary[1]]
         return batched_attention
 
     def prepare_inputs_for_generation(

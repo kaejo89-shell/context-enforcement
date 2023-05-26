@@ -2,7 +2,7 @@ import os
 
 from context_enforcement.common import create_training_args
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 os.environ["WANDB_DISABLED"] = "true"
 from context_enforcement.data.common import create_text_tokenizer, SmartCollator
 from context_enforcement.models.bart_context_enforcer import BartForContextualRecovery
@@ -14,6 +14,8 @@ from transformers import BartConfig
 import torch
 from transformers.trainer_callback import EarlyStoppingCallback
 import pickle as pk
+from pytorch_lightning import seed_everything
+seed_everything(1376)
 
 nltk.download("punkt")
 
@@ -70,9 +72,10 @@ if __name__ == "__main__":
         eval_dataset=test_dataset,
         data_collator=SmartCollator(
             pad_token_id=train_dataset.tokenizer.pad_token_id,
-            context_max_len=configs.get("context_max_len", 100),
+            context_max_len=configs.get("context_max_len", 250),
             context_sampling_bounds=configs.get("context_sampling_bounds",
-                                                (0.1, 0.45)),
+                                                (0.1,
+                                                 0.45)),
             max_len=arguments.max_seq_len,
         ),  # type: ignore
         callbacks=[EarlyStoppingCallback(early_stopping_patience=20)],

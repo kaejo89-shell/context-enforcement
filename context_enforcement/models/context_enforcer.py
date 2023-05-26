@@ -44,7 +44,7 @@ class ContextEnforcement(Module):
     def __init__(self,
                  dim,
                  dropout=0.1,
-                 share_mha=True,
+                 share_mha=False,
                  num_heads=1):
         super().__init__()
         self._share_mha = share_mha
@@ -95,7 +95,6 @@ class ContextEnforcement(Module):
                                                              right_context,
                                                              right_context, )
         rl_reps = self._activate_func(self._wrc(right_focus) + self._wlc(left_focus))
-        rl_reps = nn.functional.dropout(rl_reps, p=self._dropout, training=self.training)
         focus_combined_rep = rl_reps + focus_context
 
         # Stitch the full reps together

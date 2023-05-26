@@ -32,6 +32,8 @@ def create_training_args(parser=None):
                         type=float, default=5e-5)
 
     parser.add_argument("--max-seq-len", default=512, type=int)
+    parser.add_argument("--context-max-len", default=200, type=int)
+    
     parser.add_argument('--evaluation-strategy', default='epoch')
     parser.add_argument('--save-strategy', default='epoch')
 
