@@ -8,7 +8,6 @@ from transformers import (
     T5ForConditionalGeneration,
     BartForConditionalGeneration,
     GPT2Model,
-    EncoderDecoderModel,
 )
 from dataclasses import dataclass
 import torch
@@ -20,14 +19,17 @@ from transformers import (
     DataCollator,
     PreTrainedTokenizerBase,
     EvalPrediction,
-    EarlyStoppingCallback,
     TrainerCallback,
-    ProgressCallback,
 )
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
-from transformers.models.bart.modeling_bart import BaseModelOutput
+from torch.utils.data import Dataset
 
+from transformers.modeling_outputs import Seq2SeqLMOutput,BaseModelOutput,Seq2SeqModelOutput,BaseModelOutputWithPastAndCrossAttentions
+
+@dataclass
+class T5ModelOutput(BaseModelOutputWithPastAndCrossAttentions):
+    context_boundary: Optional[Tuple[torch.LongTensor]] = None
+    cleaned_mask: Optional[Union[FloatTensor, torch.LongTensor]] = None
 
 @dataclass
 class EncoderOutputs(BaseModelOutput):
@@ -35,7 +37,7 @@ class EncoderOutputs(BaseModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     cleaned_mask: Optional[Union[FloatTensor, torch.LongTensor]] = None
-    context_boundary: torch.LongTensor = None
+    context_boundary: Optional[Tuple[torch.FloatTensor]] = None
 
 
 @dataclass
@@ -43,6 +45,14 @@ class SentenceEmbeddingOutput(BaseModelOutput):
     token_embeddings: torch.FloatTensor = None
     sentence_embedding: torch.FloatTensor = None
     attention_mask: torch.LongTensor = None
+
+@dataclass
+class Seq2SeqModelOutputBoundary(Seq2SeqModelOutput):
+    context_boundary: Optional[Tuple[torch.LongTensor]] = None
+    
+@dataclass
+class Seq2SeqLMOutputBoundary(Seq2SeqLMOutput):
+    context_boundary: Optional[Tuple[torch.LongTensor]] = None
 
 
 @dataclass

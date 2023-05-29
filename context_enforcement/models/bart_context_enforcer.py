@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import logging
 import math
 import random
@@ -22,10 +23,12 @@ from transformers.models.bart.modeling_bart import (
     shift_tokens_right,
 )
 
-from context_enforcement.models.common import EncoderOutputs
+from context_enforcement.models.common import EncoderOutputs, Seq2SeqLMOutputBoundary, Seq2SeqModelOutputBoundary
 from context_enforcement.models.context_enforcer import ContextEnforcement, compute_context_boundary
 
 logger = logging.getLogger(__name__)
+
+
 
 
 class BartEncoderLayerWithEnforcer(nn.Module):
@@ -133,6 +136,8 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
 
         embed_dim = config.d_model
         self.padding_idx = config.pad_token_id
+        self.context_max_len= config.context_max_len
+        self.context_sampling_bounds = config.context_sampling_bounds
 
         self.max_source_positions = config.max_position_embeddings
         self.embed_scale = math.sqrt(embed_dim) if config.scale_embedding else 1.0
@@ -253,7 +258,6 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
 
         # expand attention_mask
         if attention_mask is not None:
-            # [bsz, seq_len] -> [bsz, 1, tgt_seq_len, src_seq_len]
             attention_mask_ = _expand_mask(attention_mask, inputs_embeds.dtype)
 
         encoder_states = () if output_hidden_states else None
@@ -266,6 +270,11 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
                     f"The head_mask should be specified for {len(self.layers)} layers, but it is for"
                     f" {head_mask.size()[0]}."
                 )
+        
+        if context_boundary is None:
+            context_boundary = compute_context_boundary(input_ids.shape[-1],
+                                                        context_max_len=self.context_max_len,
+                                                        context_sampling_bounds= self.context_sampling_bounds)
 
         for idx, encoder_layer in enumerate(self.layers):
             if output_hidden_states:
@@ -360,6 +369,9 @@ class ContextualisedBartModel(BartPretrainedModel, ):
 
         # Initialize weights and apply final processing
         self.post_init()
+        
+        self.context_max_len= config.context_max_len
+        self.context_sampling_bounds = config.context_sampling_bounds
 
     def get_input_embeddings(self):
         return self.shared
@@ -428,7 +440,8 @@ class ContextualisedBartModel(BartPretrainedModel, ):
 
         if context_boundary is None:
             context_boundary = compute_context_boundary(input_ids.shape[-1],
-                                                        context_max_len=110)
+                                                        context_max_len=self.context_max_len,
+                                                        context_sampling_bounds= self.context_sampling_bounds)
 
         if encoder_outputs is None:
             encoder_outputs = self.encoder(
@@ -452,6 +465,8 @@ class ContextualisedBartModel(BartPretrainedModel, ):
                 cleaned_mask=encoder_outputs[3] if len(encoder_outputs) > 3 else None,
                 context_boundary=encoder_outputs[4] if len(encoder_outputs) > 4 else context_boundary
             )
+            
+            #print(encoder_outputs.context_boundary)
 
             attention_mask = encoder_outputs.cleaned_mask
 
@@ -476,7 +491,7 @@ class ContextualisedBartModel(BartPretrainedModel, ):
         if not return_dict:
             return decoder_outputs + encoder_outputs
 
-        return Seq2SeqModelOutput(
+        return Seq2SeqModelOutputBoundary(
             last_hidden_state=decoder_outputs.last_hidden_state,
             past_key_values=decoder_outputs.past_key_values,
             decoder_hidden_states=decoder_outputs.hidden_states,
@@ -485,6 +500,7 @@ class ContextualisedBartModel(BartPretrainedModel, ):
             encoder_last_hidden_state=encoder_outputs.last_hidden_state,
             encoder_hidden_states=encoder_outputs.hidden_states,
             encoder_attentions=encoder_outputs.attentions,
+            context_boundary=context_boundary
         )
 
 
@@ -504,6 +520,9 @@ class BartForContextualRecovery(BartPretrainedModel):
 
         # Initialize weights and apply final processing
         self.post_init()
+        
+        self.context_max_len= config.context_max_len
+        self.context_sampling_bounds = config.context_sampling_bounds
 
     def get_encoder(self):
         return self.model.get_encoder()
@@ -578,9 +597,10 @@ class BartForContextualRecovery(BartPretrainedModel):
                 )
         if context_boundary is None:
             context_boundary = compute_context_boundary(input_ids.shape[-1],
-                                                        context_max_len=110)
+                                                        context_max_len=self.context_max_len,
+                                                        context_sampling_bounds= self.context_sampling_bounds)
 
-        outputs = self.model(
+        outputs: Seq2SeqModelOutputBoundary = self.model(
             input_ids,
             attention_mask=attention_mask,
             context_boundary=context_boundary,
@@ -613,7 +633,7 @@ class BartForContextualRecovery(BartPretrainedModel):
                 ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
             )
 
-        return Seq2SeqLMOutput(
+        return Seq2SeqLMOutputBoundary(
             loss=masked_lm_loss,
             logits=lm_logits,
             past_key_values=outputs.past_key_values,
@@ -623,6 +643,7 @@ class BartForContextualRecovery(BartPretrainedModel):
             encoder_last_hidden_state=outputs.encoder_last_hidden_state,
             encoder_hidden_states=outputs.encoder_hidden_states,
             encoder_attentions=outputs.encoder_attentions,
+            context_boundary=outputs.context_boundary
         )
 
     def strip_attention_mask565(self, delimiter_points_idxs, attention_mask):
@@ -685,8 +706,10 @@ class BartForContextualRecovery(BartPretrainedModel):
         factor = encoder_outputs[0].shape[0] // encoder_outputs.cleaned_mask.shape[0]
 
         attention_mask = encoder_outputs.cleaned_mask.repeat_interleave(factor, dim=0)
+        
 
         separation_points = encoder_outputs.context_boundary
+        
         if encoder_outputs[0].shape[:-1] != attention_mask.shape:
             attention_mask = self.strip_attention_mask(separation_points, attention_mask)
 
@@ -721,3 +744,128 @@ class BartForContextualRecovery(BartPretrainedModel):
                 + layer_past[2:],
             )
         return reordered_past
+
+
+class BartForContextualRecoveryMultiLoss(BartForContextualRecovery):
+    def __init__(self, config: BartConfig):
+        super().__init__(config)
+        if type(config.context_max_len_list) is not list:
+            config.context_max_len_list = [config.context_max_len_list]
+        self.context_max_len_list= config.context_max_len_list
+        self.context_sampling_bounds = config.context_sampling_bounds
+
+
+    def forward(
+            self,
+            input_ids: torch.LongTensor = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            context_boundary: Tuple[int, int] = None,
+            decoder_input_ids: Optional[torch.LongTensor] = None,
+            decoder_attention_mask: Optional[torch.LongTensor] = None,
+            head_mask: Optional[torch.Tensor] = None,
+            decoder_head_mask: Optional[torch.Tensor] = None,
+            cross_attn_head_mask: Optional[torch.Tensor] = None,
+            encoder_outputs: Optional[List[torch.FloatTensor]] = None,
+            past_key_values: Optional[List[torch.FloatTensor]] = None,
+            inputs_embeds: Optional[torch.FloatTensor] = None,
+            decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
+            labels: Optional[torch.LongTensor] = None,
+            use_cache: Optional[bool] = None,
+            output_attentions: Optional[bool] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+    ) -> Union[Tuple, Seq2SeqLMOutput]:
+        r"""
+        labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
+            Labels for computing the masked language modeling loss. Indices should either be in `[0, ...,
+            config.vocab_size]` or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored
+            (masked), the loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
+
+        Returns:
+        """
+        return_dict = (
+            return_dict if return_dict is not None else self.config.use_return_dict
+        )
+
+        if labels is not None:
+            if use_cache:
+                Logger.warning(
+                    "The `use_cache` argument is changed to `False` since `labels` is provided."
+                )
+            use_cache = False
+            if decoder_input_ids is None and decoder_inputs_embeds is None:
+                decoder_input_ids = shift_tokens_right(
+                    labels, self.config.pad_token_id, self.config.decoder_start_token_id
+                )
+        
+        
+        
+        #if context_boundary is None:
+        
+        lm_logits_=None
+        masked_losses = None
+        
+        if input_ids is not None:
+            seq_len= input_ids.shape[-1]
+        else:
+            seq_len=encoder_outputs[0].shape[1]
+        
+        for idx,context_len  in enumerate(self.context_max_len_list):
+            context_boundary = compute_context_boundary(seq_len,context_max_len=context_len,context_sampling_bounds= self.context_sampling_bounds)
+
+            outputs: Seq2SeqModelOutputBoundary = self.model(
+                input_ids,
+                attention_mask=attention_mask,
+                context_boundary=context_boundary,
+                decoder_input_ids=decoder_input_ids,
+                encoder_outputs=encoder_outputs,
+                decoder_attention_mask=decoder_attention_mask,
+                head_mask=head_mask,
+                decoder_head_mask=decoder_head_mask,
+                cross_attn_head_mask=cross_attn_head_mask,
+                past_key_values=past_key_values,
+                inputs_embeds=inputs_embeds,
+                decoder_inputs_embeds=decoder_inputs_embeds,
+                use_cache=use_cache,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+                return_dict=return_dict,
+            )
+            lm_logits = self.lm_head(outputs[0]) + self.final_logits_bias
+            
+            masked_lm_loss = None
+            if labels is not None:
+                loss_fct = CrossEntropyLoss()
+                masked_lm_loss = loss_fct(
+                    lm_logits.view(-1, self.config.vocab_size), labels.view(-1)
+                )
+                
+                #print(masked_lm_loss,masked_losses)
+                if masked_losses is not None:
+                    masked_losses+=masked_lm_loss
+                else:
+                    masked_losses = masked_lm_loss
+        
+        if masked_losses is not None:
+            masked_lm_loss = masked_losses/len(self.context_max_len_list)
+        
+        
+        if not return_dict:
+            output = (lm_logits,) + outputs[1:]
+            
+            return (
+                ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
+            )
+
+        return Seq2SeqLMOutputBoundary(
+            loss=masked_lm_loss,
+            logits=lm_logits,
+            past_key_values=outputs.past_key_values,
+            decoder_hidden_states=outputs.decoder_hidden_states,
+            decoder_attentions=outputs.decoder_attentions,
+            cross_attentions=outputs.cross_attentions,
+            encoder_last_hidden_state=outputs.encoder_last_hidden_state,
+            encoder_hidden_states=outputs.encoder_hidden_states,
+            encoder_attentions=outputs.encoder_attentions,
+            context_boundary=outputs.context_boundary
+        )

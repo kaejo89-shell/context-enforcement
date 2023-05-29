@@ -11,6 +11,8 @@ import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
+from context_enforcement.models.context_enforcer import compute_context_boundary
+
 
 def fill_blanks(sentence, tag, options):
     assert tag in sentence, f'Error {tag} not found in {sentence}'
@@ -140,13 +142,18 @@ class SmartCollator():
 
         input_ids = torch.concat(batch_inputs, 0)
         attention_mask = torch.concat(batch_attention_masks, 0)
+        
         labels = torch.concat(labels, 0)
         decoder_attention_mask = torch.concat(decoder_attention_mask, 0)
 
         # Compute the context bounds for this batch
-        boundary = 0.45
-        boundary_start = int(input_ids.shape[-1] * boundary)
-        boundary_end = boundary_start + self.context_max_len
+        #boundary = 0.45
+        #boundary_start = int(input_ids.shape[-1] * boundary)
+        #boundary_end = boundary_start + self.context_max_len
+        
+        context_boundary = compute_context_boundary(input_ids.shape[-1],
+                                                    context_max_len=self.context_max_len,
+                                                    context_sampling_bounds= self.context_sampling_bounds)
 
         if not self.is_inference:
             return dict(
@@ -154,13 +161,13 @@ class SmartCollator():
                 attention_mask=attention_mask,
                 labels=labels,
                 decoder_attention_mask=decoder_attention_mask,
-                boundary=(boundary_start, boundary_end)
+                context_boundary = context_boundary
             )
         else:
             return dict(
                 input_ids=torch.concat(batch_inputs, 0),
                 attention_mask=torch.concat(batch_attention_masks, 0),
-                boundary=(boundary_start, boundary_end)
+                context_boundary=context_boundary
             )
 
 

@@ -24,6 +24,13 @@ def compute_context_boundary(seq_max_len,
                                  context_sampling_bounds[1])
     boundary_start = int(seq_max_len * boundary)
     boundary_end = boundary_start + context_max_len
+    
+    if context_max_len >=seq_max_len:
+        boundary_start = int(0.15*seq_max_len)
+        context_max_len = int(0.70*seq_max_len)
+        boundary_end = boundary_start + context_max_len
+        
+    
     return boundary_start, boundary_end
 
 
