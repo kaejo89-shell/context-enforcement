@@ -1,1 +1,3 @@
 trained_models_sum_boundary/
+*.out
+*.pyc
