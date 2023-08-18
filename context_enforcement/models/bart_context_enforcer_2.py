@@ -24,7 +24,7 @@ from transformers.models.bart.modeling_bart import (
 )
 
 from context_enforcement.models.common import EncoderOutputs, Seq2SeqLMOutputBoundary, Seq2SeqModelOutputBoundary
-from context_enforcement.models.context_enforcer import ContextEnforcement, compute_context_boundary
+from context_enforcement.models.context_enforcer import ContextEnforcementCrossed, compute_context_boundary
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +54,9 @@ class BartEncoderLayerWithEnforcer(nn.Module):
         self.context_enforcer = None
         self.context_enforcer_layer_norm = None
         if not self._is_normal_layer:
-            self.context_enforcer = ContextEnforcement(self.embed_dim,
-                                                       activation_function=config.activation_function,
-                                                       num_heads=config.encoder_attention_heads)
+            self.context_enforcer = ContextEnforcementCrossed(self.embed_dim,
+                                                              activation_function=config.activation_function,
+                                                              num_heads=config.encoder_attention_heads)
             self.context_enforcer_layer_norm = nn.LayerNorm(self.embed_dim)
 
     def forward(
@@ -94,8 +94,7 @@ class BartEncoderLayerWithEnforcer(nn.Module):
             # Put the context enforcer here
             residual = hidden_states
             hidden_states, context_weights = self.context_enforcer(hidden_states,
-                                                                context_boundary
-                                                                ,
+                                                                context_boundary,
                                                                 output_attentions)
             hidden_states = nn.functional.dropout(hidden_states[1], p=self.dropout, training=self.training)
             hidden_states = residual + hidden_states
@@ -163,7 +162,7 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
         )
         self.layers = nn.ModuleList(
             [BartEncoderLayerWithEnforcer(config,
-                                          is_normal_layer = idx<2) for idx in range(config.encoder_layers)]
+                                          is_normal_layer = ((idx+1)%2)!=0) for idx in range(config.encoder_layers)]
         )
         self.layernorm_embedding = nn.LayerNorm(embed_dim)
 

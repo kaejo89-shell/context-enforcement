@@ -24,7 +24,7 @@ from transformers.models.bart.modeling_bart import (
 )
 
 from context_enforcement.models.common import EncoderOutputs, Seq2SeqLMOutputBoundary, Seq2SeqModelOutputBoundary
-from context_enforcement.models.context_enforcer import ContextEnforcement, compute_context_boundary
+from context_enforcement.models.context_enforcer import ContextEnforcementCrossed, compute_context_boundary
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +39,15 @@ class BartEncoderLayerWithEnforcer(nn.Module):
         super().__init__()
         self._is_normal_layer = is_normal_layer
         self.embed_dim = config.d_model
-        self.self_attn = BartAttention(
-            embed_dim=self.embed_dim,
-            num_heads=config.encoder_attention_heads,
-            dropout=config.attention_dropout,
-        )
-        self.self_attn_layer_norm = nn.LayerNorm(self.embed_dim)
+        if is_normal_layer:
+            self.self_attn = BartAttention(
+                embed_dim=self.embed_dim,
+                num_heads=config.encoder_attention_heads,
+                dropout=config.attention_dropout,
+            )
+            self.self_attn_layer_norm = nn.LayerNorm(self.embed_dim)
+            logger.info("Normal SA Layer")
+        
         self.dropout = config.dropout
         self.activation_fn = ACT2FN[config.activation_function]
         self.activation_dropout = config.activation_dropout
@@ -54,10 +57,11 @@ class BartEncoderLayerWithEnforcer(nn.Module):
         self.context_enforcer = None
         self.context_enforcer_layer_norm = None
         if not self._is_normal_layer:
-            self.context_enforcer = ContextEnforcement(self.embed_dim,
-                                                       activation_function=config.activation_function,
-                                                       num_heads=config.encoder_attention_heads)
+            self.context_enforcer = ContextEnforcementCrossed(self.embed_dim,
+                                                              activation_function=config.activation_function,
+                                                              num_heads=config.encoder_attention_heads)
             self.context_enforcer_layer_norm = nn.LayerNorm(self.embed_dim)
+            logger.info("Context Enforcement Layer")
 
     def forward(
             self,
@@ -79,23 +83,22 @@ class BartEncoderLayerWithEnforcer(nn.Module):
                 returned tensors for more detail.
         """
         residual = hidden_states
-        hidden_states, attn_weights, _ = self.self_attn(
-            hidden_states=hidden_states,
-            attention_mask=attention_mask,
-            layer_head_mask=layer_head_mask,
-            output_attentions=output_attentions,
-        )
-        hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
-        hidden_states = residual + hidden_states
-        hidden_states = self.self_attn_layer_norm(hidden_states)
         
-        
-        if not self._is_normal_layer:
+        if self._is_normal_layer:
+            hidden_states, attn_weights, _ = self.self_attn(
+                hidden_states=hidden_states,
+                attention_mask=attention_mask,
+                layer_head_mask=layer_head_mask,
+                output_attentions=output_attentions,
+            )
+            hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
+            hidden_states = residual + hidden_states
+            hidden_states = self.self_attn_layer_norm(hidden_states)
+        else:
             # Put the context enforcer here
             residual = hidden_states
-            hidden_states, context_weights = self.context_enforcer(hidden_states,
-                                                                context_boundary
-                                                                ,
+            hidden_states,  attn_weights = self.context_enforcer(hidden_states,
+                                                                context_boundary,
                                                                 output_attentions)
             hidden_states = nn.functional.dropout(hidden_states[1], p=self.dropout, training=self.training)
             hidden_states = residual + hidden_states
@@ -121,7 +124,7 @@ class BartEncoderLayerWithEnforcer(nn.Module):
         outputs = (hidden_states,)
 
         if output_attentions:
-            outputs += (attn_weights, context_weights,)
+            outputs += (attn_weights, )
 
         return outputs
 
@@ -163,7 +166,7 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
         )
         self.layers = nn.ModuleList(
             [BartEncoderLayerWithEnforcer(config,
-                                          is_normal_layer = idx<2) for idx in range(config.encoder_layers)]
+                                          is_normal_layer = ((idx+1)%2)!=0) for idx in range(config.encoder_layers)]
         )
         self.layernorm_embedding = nn.LayerNorm(embed_dim)
 

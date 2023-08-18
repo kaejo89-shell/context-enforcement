@@ -53,11 +53,11 @@ class T5ContextEnforcedEncoderBlock(nn.Module):
             )
         )
         self.layer.append(T5LayerFF(config))
-        self.dropout = config.dropout_rate
 
         self.context_enforcer = ContextEnforcement(
             config.d_model, num_heads=config.num_heads
         )
+        self.context_enforcer_layer_dropout = nn.Dropout(config.dropout_rate)
         self.context_enforcer_layer_norm = nn.LayerNorm(config.d_model)
 
     def forward(
@@ -117,15 +117,12 @@ class T5ContextEnforcedEncoderBlock(nn.Module):
             )
 
         # Put the context enforcer here
+        hidden_states = self.context_enforcer_layer_norm(hidden_states)
         residual = hidden_states
-        hidden_states, _ = self.context_enforcer(
+        ce_output_rep, _ = self.context_enforcer(
             hidden_states, context_boundary, output_attentions
         )
-        hidden_states = nn.functional.dropout(
-            hidden_states[1], p=self.dropout, training=self.training
-        )
-        hidden_states = residual + hidden_states
-        hidden_states = self.context_enforcer_layer_norm(hidden_states)
+        hidden_states = residual + self.context_enforcer_layer_dropout(ce_output_rep[1])
 
         # clamp inf values to enable fp16 training
         if hidden_states.dtype == torch.float16 and torch.isinf(hidden_states).any():

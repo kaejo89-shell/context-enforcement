@@ -3,7 +3,7 @@ from typing import List
 
 os.environ["WANDB_DISABLED"] = "true"
 from context_enforcement.data.common import create_text_tokenizer, SmartCollator
-from context_enforcement.models.bart_context_enforcer_2 import (
+from context_enforcement.models.bart_context_enforcer_3 import (
     BartForContextualRecovery,
     BartForContextualRecoveryMultiLoss,
 )
