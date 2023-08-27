@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import logging
 import math
 import random
@@ -18,24 +17,25 @@ from transformers.models.bart.modeling_bart import (
     CrossEntropyLoss,
     Seq2SeqLMOutput,
     Seq2SeqModelOutput,
-    BartEncoderLayer,
     _expand_mask,
     shift_tokens_right,
 )
 
-from context_enforcement.models.common import EncoderOutputs, Seq2SeqLMOutputBoundary, Seq2SeqModelOutputBoundary
-from context_enforcement.models.context_enforcer import ContextEnforcementCrossed, compute_context_boundary
+from context_enforcement.models.common import (
+    EncoderOutputs,
+    Seq2SeqLMOutputBoundary,
+    Seq2SeqModelOutputBoundary,
+)
+from context_enforcement.models.context_enforcer import (
+    ContextEnforcementCrossed,
+    compute_context_boundary,
+)
 
 logger = logging.getLogger(__name__)
 
 
-
-
 class BartEncoderLayerWithEnforcer(nn.Module):
-    def __init__(self,
-                 config: BartConfig,
-                 is_normal_layer: bool = False
-                 ):
+    def __init__(self, config: BartConfig, is_normal_layer: bool = False):
         super().__init__()
         self._is_normal_layer = is_normal_layer
         self.embed_dim = config.d_model
@@ -54,18 +54,20 @@ class BartEncoderLayerWithEnforcer(nn.Module):
         self.context_enforcer = None
         self.context_enforcer_layer_norm = None
         if not self._is_normal_layer:
-            self.context_enforcer = ContextEnforcementCrossed(self.embed_dim,
-                                                              activation_function=config.activation_function,
-                                                              num_heads=config.encoder_attention_heads)
+            self.context_enforcer = ContextEnforcementCrossed(
+                self.embed_dim,
+                activation_function=config.activation_function,
+                num_heads=config.encoder_attention_heads,
+            )
             self.context_enforcer_layer_norm = nn.LayerNorm(self.embed_dim)
 
     def forward(
-            self,
-            hidden_states: torch.FloatTensor,
-            attention_mask: torch.FloatTensor,
-            context_boundary: Tuple[int, int],
-            layer_head_mask: torch.FloatTensor,
-            output_attentions: Optional[bool] = False,
+        self,
+        hidden_states: torch.FloatTensor,
+        attention_mask: torch.FloatTensor,
+        context_boundary: Tuple[int, int],
+        layer_head_mask: torch.FloatTensor,
+        output_attentions: Optional[bool] = False,
     ) -> Tuple[torch.FloatTensor, Optional[torch.FloatTensor]]:
         """
         Args:
@@ -85,49 +87,60 @@ class BartEncoderLayerWithEnforcer(nn.Module):
             layer_head_mask=layer_head_mask,
             output_attentions=output_attentions,
         )
-        hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
+        hidden_states = nn.functional.dropout(
+            hidden_states, p=self.dropout, training=self.training
+        )
         hidden_states = residual + hidden_states
         hidden_states = self.self_attn_layer_norm(hidden_states)
-        
-        
+
         if not self._is_normal_layer:
             # Put the context enforcer here
             residual = hidden_states
-            hidden_states, context_weights = self.context_enforcer(hidden_states,
-                                                                context_boundary,
-                                                                output_attentions)
-            hidden_states = nn.functional.dropout(hidden_states[1], p=self.dropout, training=self.training)
+            hidden_states, context_weights = self.context_enforcer(
+                hidden_states, context_boundary, output_attentions
+            )
+            hidden_states = nn.functional.dropout(
+                hidden_states[1], p=self.dropout, training=self.training
+            )
             hidden_states = residual + hidden_states
             hidden_states = self.context_enforcer_layer_norm(hidden_states)
             # End of context enforcer
 
         residual = hidden_states
         hidden_states = self.activation_fn(self.fc1(hidden_states))
-        hidden_states = nn.functional.dropout(hidden_states, p=self.activation_dropout, training=self.training)
+        hidden_states = nn.functional.dropout(
+            hidden_states, p=self.activation_dropout, training=self.training
+        )
         hidden_states = self.fc2(hidden_states)
-        hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
+        hidden_states = nn.functional.dropout(
+            hidden_states, p=self.dropout, training=self.training
+        )
         hidden_states = residual + hidden_states
 
         hidden_states = self.final_layer_norm(hidden_states)
 
         if hidden_states.dtype == torch.float16 and (
-                torch.isinf(hidden_states).any() or torch.isnan(hidden_states).any()
+            torch.isinf(hidden_states).any() or torch.isnan(hidden_states).any()
         ):
             clamp_value = torch.finfo(hidden_states.dtype).max - 1000
-            hidden_states = torch.clamp(hidden_states,
-                                        min=-clamp_value, max=clamp_value)
+            hidden_states = torch.clamp(
+                hidden_states, min=-clamp_value, max=clamp_value
+            )
 
         outputs = (hidden_states,)
 
         if output_attentions:
-            outputs += (attn_weights, context_weights,)
+            outputs += (
+                attn_weights,
+                context_weights,
+            )
 
         return outputs
 
 
 class BartEncoderWithEnforcer(BartPretrainedModel):
     """
-    Transformer encoder consisting of *config.encoder_layers* self attention layers. 
+    Transformer encoder consisting of *config.encoder_layers* self attention layers.
     Each layer is a [`BartEncoderLayer`].
 
     Args:
@@ -143,7 +156,7 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
 
         embed_dim = config.d_model
         self.padding_idx = config.pad_token_id
-        self.context_max_len= config.context_max_len
+        self.context_max_len = config.context_max_len
         self.context_sampling_bounds = config.context_sampling_bounds
 
         self.max_source_positions = config.max_position_embeddings
@@ -161,8 +174,12 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
             embed_dim,
         )
         self.layers = nn.ModuleList(
-            [BartEncoderLayerWithEnforcer(config,
-                                          is_normal_layer = ((idx+1)%2)!=0) for idx in range(config.encoder_layers)]
+            [
+                BartEncoderLayerWithEnforcer(
+                    config, is_normal_layer=((idx + 1) % 2) != 0
+                )
+                for idx in range(config.encoder_layers)
+            ]
         )
         self.layernorm_embedding = nn.LayerNorm(embed_dim)
 
@@ -177,15 +194,15 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
         self.embed_tokens = value
 
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            context_boundary: Tuple[int, int] = None,
-            head_mask: Optional[torch.Tensor] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        context_boundary: Tuple[int, int] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
     ) -> Union[Tuple, BaseModelOutput]:
         r"""
         Args:
@@ -278,11 +295,13 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
                     f"The head_mask should be specified for {len(self.layers)} layers, but it is for"
                     f" {head_mask.size()[0]}."
                 )
-        
+
         if context_boundary is None:
-            context_boundary = compute_context_boundary(input_ids.shape[-1],
-                                                        context_max_len=self.context_max_len,
-                                                        context_sampling_bounds= self.context_sampling_bounds)
+            context_boundary = compute_context_boundary(
+                input_ids.shape[-1],
+                context_max_len=self.context_max_len,
+                context_sampling_bounds=self.context_sampling_bounds,
+            )
 
         for idx, encoder_layer in enumerate(self.layers):
             if output_hidden_states:
@@ -290,7 +309,7 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
             # add LayerDrop (see https://arxiv.org/abs/1909.11556 for description)
             dropout_probability = random.uniform(0, 1)
             if self.training and (
-                    dropout_probability < self.layerdrop
+                dropout_probability < self.layerdrop
             ):  # skip the layer
                 layer_outputs = (None, None)
             else:
@@ -328,14 +347,17 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
         if output_hidden_states:
             encoder_states = encoder_states + (hidden_states,)
 
-        hidden_states = hidden_states[:, context_boundary[0]:context_boundary[1], :]
+        hidden_states = hidden_states[:, context_boundary[0] : context_boundary[1], :]
         context_len = hidden_states.shape[1]
 
         batch_encoder_attention_masks = None
         if attention_mask is not None:
-            batch_encoder_attention_masks = torch.ones((hidden_states.shape[0],context_len),dtype=torch.long,
-                                                       device= hidden_states.device)
-            #attention_mask[:,context_boundary[0]:context_boundary[1]].view(-1, context_len)
+            batch_encoder_attention_masks = torch.ones(
+                (hidden_states.shape[0], context_len),
+                dtype=torch.long,
+                device=hidden_states.device,
+            )
+            # attention_mask[:,context_boundary[0]:context_boundary[1]].view(-1, context_len)
 
         if not return_dict:
             return tuple(
@@ -357,11 +379,13 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
             hidden_states=encoder_states,
             attentions=all_attentions,
             cleaned_mask=batch_encoder_attention_masks,
-            context_boundary=context_boundary
+            context_boundary=context_boundary,
         )
 
 
-class ContextualisedBartModel(BartPretrainedModel, ):
+class ContextualisedBartModel(
+    BartPretrainedModel,
+):
     def __init__(self, config: BartConfig):
         super().__init__(config)
 
@@ -377,8 +401,8 @@ class ContextualisedBartModel(BartPretrainedModel, ):
 
         # Initialize weights and apply final processing
         self.post_init()
-        
-        self.context_max_len= config.context_max_len
+
+        self.context_max_len = config.context_max_len
         self.context_sampling_bounds = config.context_sampling_bounds
 
     def get_input_embeddings(self):
@@ -397,26 +421,25 @@ class ContextualisedBartModel(BartPretrainedModel, ):
         return self.decoder
 
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            context_boundary: Tuple[int, int] = None,
-            decoder_input_ids: Optional[torch.LongTensor] = None,
-            decoder_attention_mask: Optional[torch.LongTensor] = None,
-            head_mask: Optional[torch.Tensor] = None,
-            decoder_head_mask: Optional[torch.Tensor] = None,
-            cross_attn_head_mask: Optional[torch.Tensor] = None,
-            encoder_outputs: Optional[List[torch.FloatTensor]] = None,
-            past_key_values: Optional[List[torch.FloatTensor]] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
-            return_stripped=False,
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        context_boundary: Tuple[int, int] = None,
+        decoder_input_ids: Optional[torch.LongTensor] = None,
+        decoder_attention_mask: Optional[torch.LongTensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        decoder_head_mask: Optional[torch.Tensor] = None,
+        cross_attn_head_mask: Optional[torch.Tensor] = None,
+        encoder_outputs: Optional[List[torch.FloatTensor]] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+        return_stripped=False,
     ) -> Union[Tuple, Seq2SeqModelOutput]:
-
         # different to other models, Bart automatically creates decoder_input_ids from
         # input_ids if no decoder_input_ids are provided
         if decoder_input_ids is None and decoder_inputs_embeds is None:
@@ -447,9 +470,11 @@ class ContextualisedBartModel(BartPretrainedModel, ):
         )
 
         if context_boundary is None:
-            context_boundary = compute_context_boundary(input_ids.shape[-1],
-                                                        context_max_len=self.context_max_len,
-                                                        context_sampling_bounds= self.context_sampling_bounds)
+            context_boundary = compute_context_boundary(
+                input_ids.shape[-1],
+                context_max_len=self.context_max_len,
+                context_sampling_bounds=self.context_sampling_bounds,
+            )
 
         if encoder_outputs is None:
             encoder_outputs = self.encoder(
@@ -471,10 +496,12 @@ class ContextualisedBartModel(BartPretrainedModel, ):
                 hidden_states=encoder_outputs[1] if len(encoder_outputs) > 1 else None,
                 attentions=encoder_outputs[2] if len(encoder_outputs) > 2 else None,
                 cleaned_mask=encoder_outputs[3] if len(encoder_outputs) > 3 else None,
-                context_boundary=encoder_outputs[4] if len(encoder_outputs) > 4 else context_boundary
+                context_boundary=encoder_outputs[4]
+                if len(encoder_outputs) > 4
+                else context_boundary,
             )
-            
-            #print(encoder_outputs.context_boundary)
+
+            # print(encoder_outputs.context_boundary)
 
             attention_mask = encoder_outputs.cleaned_mask
 
@@ -508,7 +535,7 @@ class ContextualisedBartModel(BartPretrainedModel, ):
             encoder_last_hidden_state=encoder_outputs.last_hidden_state,
             encoder_hidden_states=encoder_outputs.hidden_states,
             encoder_attentions=encoder_outputs.attentions,
-            context_boundary=context_boundary
+            context_boundary=context_boundary,
         )
 
 
@@ -528,8 +555,8 @@ class BartForContextualRecovery(BartPretrainedModel):
 
         # Initialize weights and apply final processing
         self.post_init()
-        
-        self.context_max_len= config.context_max_len
+
+        self.context_max_len = config.context_max_len
         self.context_sampling_bounds = config.context_sampling_bounds
 
     def get_encoder(self):
@@ -562,24 +589,24 @@ class BartForContextualRecovery(BartPretrainedModel):
         self.lm_head = new_embeddings
 
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            context_boundary: Tuple[int, int] = None,
-            decoder_input_ids: Optional[torch.LongTensor] = None,
-            decoder_attention_mask: Optional[torch.LongTensor] = None,
-            head_mask: Optional[torch.Tensor] = None,
-            decoder_head_mask: Optional[torch.Tensor] = None,
-            cross_attn_head_mask: Optional[torch.Tensor] = None,
-            encoder_outputs: Optional[List[torch.FloatTensor]] = None,
-            past_key_values: Optional[List[torch.FloatTensor]] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
-            labels: Optional[torch.LongTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        context_boundary: Tuple[int, int] = None,
+        decoder_input_ids: Optional[torch.LongTensor] = None,
+        decoder_attention_mask: Optional[torch.LongTensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        decoder_head_mask: Optional[torch.Tensor] = None,
+        cross_attn_head_mask: Optional[torch.Tensor] = None,
+        encoder_outputs: Optional[List[torch.FloatTensor]] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
     ) -> Union[Tuple, Seq2SeqLMOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -604,9 +631,11 @@ class BartForContextualRecovery(BartPretrainedModel):
                     labels, self.config.pad_token_id, self.config.decoder_start_token_id
                 )
         if context_boundary is None:
-            context_boundary = compute_context_boundary(input_ids.shape[-1],
-                                                        context_max_len=self.context_max_len,
-                                                        context_sampling_bounds= self.context_sampling_bounds)
+            context_boundary = compute_context_boundary(
+                input_ids.shape[-1],
+                context_max_len=self.context_max_len,
+                context_sampling_bounds=self.context_sampling_bounds,
+            )
 
         outputs: Seq2SeqModelOutputBoundary = self.model(
             input_ids,
@@ -651,7 +680,7 @@ class BartForContextualRecovery(BartPretrainedModel):
             encoder_last_hidden_state=outputs.encoder_last_hidden_state,
             encoder_hidden_states=outputs.encoder_hidden_states,
             encoder_attentions=outputs.encoder_attentions,
-            context_boundary=outputs.context_boundary
+            context_boundary=outputs.context_boundary,
         )
 
     def strip_attention_mask565(self, delimiter_points_idxs, attention_mask):
@@ -661,14 +690,11 @@ class BartForContextualRecovery(BartPretrainedModel):
 
         # For item in input_ids, embeddings, attention_mask, input_ids, select the
         # portion of the tensor after the delimiter_point_id
-        for delimiter_point_id, att_mask in zip(
-                delimiter_points_idxs, attention_mask
-        ):
-
+        for delimiter_point_id, att_mask in zip(delimiter_points_idxs, attention_mask):
             if max_length < att_mask.shape[0]:
                 max_length = att_mask.shape[0]
 
-            all_attention_masks.append(att_mask[delimiter_point_id + 1:])
+            all_attention_masks.append(att_mask[delimiter_point_id + 1 :])
 
         # Reshape all the section of interest for each item in all_input_ids, all_embeddings, all_attention_masks to
         # the same size
@@ -688,24 +714,22 @@ class BartForContextualRecovery(BartPretrainedModel):
         batch_attention_masks = torch.concat(batch_attention_masks, 0)
         return batch_attention_masks
 
-    def strip_attention_mask(self,
-                             context_boundary,
-                             attention_mask):
-        attn= torch.ones_like(attention_mask)
-        batched_attention =attn[:, context_boundary[0]:context_boundary[1]]
+    def strip_attention_mask(self, context_boundary, attention_mask):
+        attn = torch.ones_like(attention_mask)
+        batched_attention = attn[:, context_boundary[0] : context_boundary[1]]
         return batched_attention
 
     def prepare_inputs_for_generation(
-            self,
-            decoder_input_ids,
-            past=None,
-            attention_mask=None,
-            head_mask=None,
-            decoder_head_mask=None,
-            cross_attn_head_mask=None,
-            use_cache=None,
-            encoder_outputs=None,
-            **kwargs,
+        self,
+        decoder_input_ids,
+        past=None,
+        attention_mask=None,
+        head_mask=None,
+        decoder_head_mask=None,
+        cross_attn_head_mask=None,
+        use_cache=None,
+        encoder_outputs=None,
+        **kwargs,
     ):
         # cut decoder_input_ids if past is used
         if past is not None:
@@ -714,12 +738,13 @@ class BartForContextualRecovery(BartPretrainedModel):
         factor = encoder_outputs[0].shape[0] // encoder_outputs.cleaned_mask.shape[0]
 
         attention_mask = encoder_outputs.cleaned_mask.repeat_interleave(factor, dim=0)
-        
 
         separation_points = encoder_outputs.context_boundary
-        
+
         if encoder_outputs[0].shape[:-1] != attention_mask.shape:
-            attention_mask = self.strip_attention_mask(separation_points, attention_mask)
+            attention_mask = self.strip_attention_mask(
+                separation_points, attention_mask
+            )
 
         return {
             "input_ids": None,  # encoder_outputs is defined. input_ids not needed
@@ -759,29 +784,28 @@ class BartForContextualRecoveryMultiLoss(BartForContextualRecovery):
         super().__init__(config)
         if type(config.context_max_len_list) is not list:
             config.context_max_len_list = [config.context_max_len_list]
-        self.context_max_len_list= config.context_max_len_list
+        self.context_max_len_list = config.context_max_len_list
         self.context_sampling_bounds = config.context_sampling_bounds
 
-
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            context_boundary: Tuple[int, int] = None,
-            decoder_input_ids: Optional[torch.LongTensor] = None,
-            decoder_attention_mask: Optional[torch.LongTensor] = None,
-            head_mask: Optional[torch.Tensor] = None,
-            decoder_head_mask: Optional[torch.Tensor] = None,
-            cross_attn_head_mask: Optional[torch.Tensor] = None,
-            encoder_outputs: Optional[List[torch.FloatTensor]] = None,
-            past_key_values: Optional[List[torch.FloatTensor]] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
-            labels: Optional[torch.LongTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        context_boundary: Tuple[int, int] = None,
+        decoder_input_ids: Optional[torch.LongTensor] = None,
+        decoder_attention_mask: Optional[torch.LongTensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        decoder_head_mask: Optional[torch.Tensor] = None,
+        cross_attn_head_mask: Optional[torch.Tensor] = None,
+        encoder_outputs: Optional[List[torch.FloatTensor]] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
     ) -> Union[Tuple, Seq2SeqLMOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -805,21 +829,23 @@ class BartForContextualRecoveryMultiLoss(BartForContextualRecovery):
                 decoder_input_ids = shift_tokens_right(
                     labels, self.config.pad_token_id, self.config.decoder_start_token_id
                 )
-        
-        
-        
-        #if context_boundary is None:
-        
-        lm_logits_=None
+
+        # if context_boundary is None:
+
+        lm_logits_ = None
         masked_losses = None
-        
+
         if input_ids is not None:
-            seq_len= input_ids.shape[-1]
+            seq_len = input_ids.shape[-1]
         else:
-            seq_len=encoder_outputs[0].shape[1]
-        
-        for idx,context_len  in enumerate(self.context_max_len_list):
-            context_boundary = compute_context_boundary(seq_len,context_max_len=context_len,context_sampling_bounds= self.context_sampling_bounds)
+            seq_len = encoder_outputs[0].shape[1]
+
+        for idx, context_len in enumerate(self.context_max_len_list):
+            context_boundary = compute_context_boundary(
+                seq_len,
+                context_max_len=context_len,
+                context_sampling_bounds=self.context_sampling_bounds,
+            )
 
             outputs: Seq2SeqModelOutputBoundary = self.model(
                 input_ids,
@@ -840,27 +866,26 @@ class BartForContextualRecoveryMultiLoss(BartForContextualRecovery):
                 return_dict=return_dict,
             )
             lm_logits = self.lm_head(outputs[0]) + self.final_logits_bias
-            
+
             masked_lm_loss = None
             if labels is not None:
                 loss_fct = CrossEntropyLoss()
                 masked_lm_loss = loss_fct(
                     lm_logits.view(-1, self.config.vocab_size), labels.view(-1)
                 )
-                
-                #print(masked_lm_loss,masked_losses)
+
+                # print(masked_lm_loss,masked_losses)
                 if masked_losses is not None:
-                    masked_losses+=masked_lm_loss
+                    masked_losses += masked_lm_loss
                 else:
                     masked_losses = masked_lm_loss
-        
+
         if masked_losses is not None:
-            masked_lm_loss = masked_losses/len(self.context_max_len_list)
-        
-        
+            masked_lm_loss = masked_losses / len(self.context_max_len_list)
+
         if not return_dict:
             output = (lm_logits,) + outputs[1:]
-            
+
             return (
                 ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
             )
@@ -875,5 +900,5 @@ class BartForContextualRecoveryMultiLoss(BartForContextualRecovery):
             encoder_last_hidden_state=outputs.encoder_last_hidden_state,
             encoder_hidden_states=outputs.encoder_hidden_states,
             encoder_attentions=outputs.encoder_attentions,
-            context_boundary=outputs.context_boundary
+            context_boundary=outputs.context_boundary,
         )

@@ -1,9 +1,9 @@
 import os
-from typing import List
+from typing import List, Tuple
 
 os.environ["WANDB_DISABLED"] = "true"
 from context_enforcement.data.common import create_text_tokenizer, SmartCollator
-from context_enforcement.models.bart_context_enforcer_3 import (
+from context_enforcement.models.bart_common import (
     BartForContextualRecovery,
     BartForContextualRecoveryMultiLoss,
 )
@@ -31,11 +31,27 @@ def model_init(
     model_base="facebook/bart-base",
     context_num_heads=1,
     context_max_len=200,
-    context_max_len_list: List = [200],
-    context_sampling_bounds=(0.1, 0.45),
+    context_max_len_list: List = None,
+    context_sampling_bounds: Tuple = (0.1, 0.45),
     device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
     is_baseline=False,
+    is_enforcement_baseline=False,
 ):
+    """
+
+    :param vocab_size:
+    :param model_base:
+    :param context_num_heads:
+    :param context_max_len:
+    :param context_max_len_list:
+    :param context_sampling_bounds:
+    :param device:
+    :param is_baseline:
+    :return:
+    """
+    if context_max_len_list is None:
+        context_max_len_list = [200]
+
     def build_model():
         bart_config = BartConfig.from_pretrained(model_base)
 
@@ -44,6 +60,7 @@ def model_init(
             bart_config.context_max_len = context_max_len
             bart_config.context_sampling_bounds = context_sampling_bounds
             bart_config.context_max_len_list = context_max_len_list
+            bart_config.is_enforcement_baseline = is_enforcement_baseline
 
         if is_baseline:
             model_class_name = BartForConditionalGeneration
@@ -109,6 +126,12 @@ if __name__ == "__main__":
         context_max_len_list=context_max_len_list,
     )
 
+    output_path = os.path.join(arguments.output_dir, arguments.run_id, "train_args.ap")
+    pk.dump(
+        arguments,
+        open(output_path, "wb"),
+    )
+
     training_arguments = get_training_arguments(**configs)
     custom_trainer = CustomTrainer(
         model=model_builder(),
@@ -126,9 +149,3 @@ if __name__ == "__main__":
     )
 
     custom_trainer.train()
-
-    output_path = os.path.join(arguments.output_dir, arguments.run_id, "train_args.ap")
-    pk.dump(
-        arguments,
-        open(output_path, "wb"),
-    )
