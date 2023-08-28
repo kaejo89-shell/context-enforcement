@@ -9,3 +9,4 @@ context_enforcement/__pycache__/
 context_enforcement/__pycache__/common.cpython-39.pyc
 .gitignore
 .gitignore
+trained_models/
