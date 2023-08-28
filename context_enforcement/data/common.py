@@ -168,7 +168,7 @@ class SmartCollator:
                 labels=labels,
                 decoder_attention_mask=decoder_attention_mask,
                 context_boundary=context_boundary,
-            )
+            ) # type: ignore
         else:
             return dict(
                 input_ids=torch.concat(batch_inputs, 0),

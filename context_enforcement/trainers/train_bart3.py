@@ -33,7 +33,7 @@ def model_init(
     context_max_len=200,
     context_max_len_list: List = None,
     context_sampling_bounds: Tuple = (0.1, 0.45),
-    device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
+    device=None,
     is_baseline=False,
     is_enforcement_baseline=False,
 ):
@@ -51,6 +51,8 @@ def model_init(
     """
     if context_max_len_list is None:
         context_max_len_list = [200]
+    if device is None:
+        device= torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     def build_model():
         bart_config = BartConfig.from_pretrained(model_base)
@@ -124,12 +126,16 @@ if __name__ == "__main__":
         context_max_len=context_max_len,
         context_sampling_bounds=context_sampling_bounds,
         context_max_len_list=context_max_len_list,
+        is_enforcement_baseline= arguments.is_enforcement_baseline,
     )
-
-    output_path = os.path.join(arguments.output_dir, arguments.run_id, "train_args.ap")
+    
+    os.makedirs(os.path.join(arguments.output_dir,
+                               arguments.run_id),exist_ok=True)
+    train_args_path = os.path.join(arguments.output_dir,
+                               arguments.run_id, "train_args.ap")
     pk.dump(
         arguments,
-        open(output_path, "wb"),
+        open(train_args_path, "wb"),
     )
 
     training_arguments = get_training_arguments(**configs)

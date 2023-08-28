@@ -1,6 +1,9 @@
+from functools import partial
 from context_enforcement.data.XsumDataset import create_xsum_dataset
 
 import argparse
+
+from context_enforcement.data.wikihowDatasets import create_wikihow_dataset
 
 
 def add_context_enforcement_args(parser=None):
@@ -100,3 +103,5 @@ def get_dataset_specified_tasks(task_type=None):
 
     if task_type.lower() in ["xsum", "xsummarization"]:
         return create_xsum_dataset
+    if task_type.lower() in ['wikihow']:
+        return partial(create_wikihow_dataset,wikihow_data_path="../raw_data/")

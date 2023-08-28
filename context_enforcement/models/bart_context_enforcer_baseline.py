@@ -302,14 +302,12 @@ class BartContextEnforcerBaseline(BartPretrainedModel):
                         create_custom_forward(encoder_layer),
                         hidden_states,
                         attention_mask_,
-                        context_boundary,
                         (head_mask[idx] if head_mask is not None else None),
                     )
                 else:
                     layer_outputs = encoder_layer(
                         hidden_states,
                         attention_mask_,
-                        context_boundary=context_boundary,
                         layer_head_mask=(
                             head_mask[idx] if head_mask is not None else None
                         ),
