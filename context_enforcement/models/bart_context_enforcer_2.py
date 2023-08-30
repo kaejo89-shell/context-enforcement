@@ -27,7 +27,7 @@ from context_enforcement.models.common import (
     Seq2SeqModelOutputBoundary,
 )
 from context_enforcement.models.context_enforcer import (
-    ContextEnforcement,
+    ContextEnforcementCrossed,
     compute_context_boundary,
 )
 
@@ -54,7 +54,7 @@ class BartEncoderLayerWithEnforcer(nn.Module):
         self.context_enforcer = None
         self.context_enforcer_layer_norm = None
         if not self._is_normal_layer:
-            self.context_enforcer = ContextEnforcement(
+            self.context_enforcer = ContextEnforcementCrossed(
                 self.embed_dim,
                 activation_function=config.activation_function,
                 num_heads=config.encoder_attention_heads,
@@ -175,7 +175,9 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
         )
         self.layers = nn.ModuleList(
             [
-                BartEncoderLayerWithEnforcer(config, is_normal_layer=idx < 2)
+                BartEncoderLayerWithEnforcer(
+                    config, is_normal_layer=((idx + 1) % 2) != 0
+                )
                 for idx in range(config.encoder_layers)
             ]
         )

@@ -1,9 +1,12 @@
 import os
-from typing import List
+from typing import List, Tuple
 
 os.environ["WANDB_DISABLED"] = "true"
 from context_enforcement.data.common import create_text_tokenizer, SmartCollator
-from context_enforcement.models.t5_context_enforcer import T5ContextEnforcementSeqModel
+from context_enforcement.models.bart_common import (
+    BartForContextualRecovery,
+    BartForContextualRecoveryMultiLoss,
+)
 from context_enforcement.models.common import CustomTrainer, get_training_arguments
 from context_enforcement.trainers.common import (
     add_context_enforcement_args,
@@ -12,7 +15,7 @@ from context_enforcement.trainers.common import (
 )
 import ast
 import nltk
-from transformers import T5Config, T5ForConditionalGeneration
+from transformers import BartConfig, BartForConditionalGeneration
 import torch
 from transformers.trainer_callback import EarlyStoppingCallback
 import pickle as pk
@@ -25,34 +28,53 @@ nltk.download("punkt")
 
 def model_init(
     vocab_size,
-    model_base="t5-base",
+    model_base="facebook/bart-base",
     context_num_heads=1,
     context_max_len=200,
-    context_max_len_list: List = [200],
-    context_sampling_bounds=(0.1, 0.45),
-    device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
+    context_max_len_list: List = None,
+    context_sampling_bounds: Tuple = (0.1, 0.45),
+    device=None,
     is_baseline=False,
+    is_enforcement_baseline=False,
 ):
+    """
+
+    :param vocab_size:
+    :param model_base:
+    :param context_num_heads:
+    :param context_max_len:
+    :param context_max_len_list:
+    :param context_sampling_bounds:
+    :param device:
+    :param is_baseline:
+    :return:
+    """
+    if context_max_len_list is None:
+        context_max_len_list = [200]
+    if device is None:
+        device= torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
     def build_model():
-        t5_config = T5Config.from_pretrained(model_base)
+        bart_config = BartConfig.from_pretrained(model_base)
 
         if not is_baseline:
-            t5_config.context_num_heads = context_num_heads
-            t5_config.context_max_len = context_max_len
-            t5_config.context_sampling_bounds = context_sampling_bounds
-            t5_config.context_max_len_list = context_max_len_list
+            bart_config.context_num_heads = context_num_heads
+            bart_config.context_max_len = context_max_len
+            bart_config.context_sampling_bounds = context_sampling_bounds
+            bart_config.context_max_len_list = context_max_len_list
+            bart_config.is_enforcement_baseline = is_enforcement_baseline
 
         if is_baseline:
-            model_class_name = T5ForConditionalGeneration
+            model_class_name = BartForConditionalGeneration
         else:
             if context_max_len_list is not None and len(context_max_len_list) > 1:
-                model_class_name = T5ContextEnforcementSeqModel
+                model_class_name = BartForContextualRecoveryMultiLoss
             else:
-                model_class_name = T5ContextEnforcementSeqModel
+                model_class_name = BartForContextualRecovery
 
         generator = model_class_name.from_pretrained(
             model_base,
-            config=t5_config,
+            config=bart_config,
         )
 
         # update the tokens
@@ -104,6 +126,16 @@ if __name__ == "__main__":
         context_max_len=context_max_len,
         context_sampling_bounds=context_sampling_bounds,
         context_max_len_list=context_max_len_list,
+        is_enforcement_baseline= arguments.is_enforcement_baseline,
+    )
+    
+    os.makedirs(os.path.join(arguments.output_dir,
+                               arguments.run_id),exist_ok=True)
+    train_args_path = os.path.join(arguments.output_dir,
+                               arguments.run_id, "train_args.ap")
+    pk.dump(
+        arguments,
+        open(train_args_path, "wb"),
     )
 
     training_arguments = get_training_arguments(**configs)
@@ -123,9 +155,3 @@ if __name__ == "__main__":
     )
 
     custom_trainer.train()
-
-    output_path = os.path.join(arguments.output_dir, arguments.run_id, "train_args.ap")
-    pk.dump(
-        arguments,
-        open(output_path, "wb"),
-    )

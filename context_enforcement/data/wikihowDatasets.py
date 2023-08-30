@@ -1,27 +1,32 @@
 from datasets import load_dataset
 
-from context_enforcement.data.common import Features, DatasetProcessor
+from context_enforcement.data.common import Features, DatasetProcessor,normalize_whitespace
 
 
-def load_raw_xsum():
+def load_raw_wikihow(data_path):
     """
-    Gets the XSUM dataset from huggingface
+    Gets the Wikihow dataset from huggingface
 
     :return:
     """
-    dataset = load_dataset("xsum")
+    dataset = load_dataset("wikihow", "all", data_path)
     return dataset
 
 
-class XSumDataset(DatasetProcessor):
+class WikiHowDataset(DatasetProcessor):
     def __init__(self, tokenizer, data, use_special_token=True):
         super().__init__(
             tokenizer=tokenizer, data=data, use_special_token=use_special_token
         )
 
     def _process_data(self, data_point):
-        document = data_point["document"]
-        summary = data_point.get("summary", None)
+        document = data_point['text']
+        document = normalize_whitespace(document.replace('.\n','. ').replace('\n','').strip())
+
+        summary = data_point.get('headline',None)
+        if summary is not None:
+            summary = normalize_whitespace(
+                data_point.get('headline', None).replace('.\n', '. ').replace('\n', '').strip())
 
         passage_pack = self.tokenizer(
             document,
@@ -45,17 +50,17 @@ class XSumDataset(DatasetProcessor):
         return features
 
 
-def create_xsum_dataset(tokenizer):
-    dataset = load_raw_xsum()
-    train_data = XSumDataset(
+def create_wikihow_dataset(tokenizer,wikihow_data_path):
+    dataset = load_raw_wikihow(data_path=wikihow_data_path)
+    train_data = WikiHowDataset(
         tokenizer,
         dataset["train"],
     )
-    test_data = XSumDataset(
+    test_data = WikiHowDataset(
         tokenizer,
         dataset["test"],
     )
-    val_data = XSumDataset(
+    val_data = WikiHowDataset(
         tokenizer,
         dataset["validation"],
     )

@@ -11,21 +11,25 @@ import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
+from context_enforcement.models.context_enforcer import compute_context_boundary
+
 
 def fill_blanks(sentence, tag, options):
-    assert tag in sentence, f'Error {tag} not found in {sentence}'
+    assert tag in sentence, f"Error {tag} not found in {sentence}"
     tag_options = {tag: options}
     extended1 = [
-        functools.reduce(lambda a,
-                                kv: a.replace(*kv),
-                         tag_options.items(),
-                         re.sub('\s+', ' ',
-                                ss.strip().replace('\n', ' '))) for ss in [sentence]][0]
+        functools.reduce(
+            lambda a, kv: a.replace(*kv),
+            tag_options.items(),
+            re.sub("\s+", " ", ss.strip().replace("\n", " ")),
+        )
+        for ss in [sentence]
+    ][0]
     return extended1
 
 
 def read_sentences(file, lower=False) -> List[str]:
-    with open(file, 'r', encoding="utf-8") as o_file:
+    with open(file, "r", encoding="utf-8") as o_file:
         sentences = []
         for s in o_file.readlines():
             ss = s.strip().lower() if lower else s.strip()
@@ -34,12 +38,12 @@ def read_sentences(file, lower=False) -> List[str]:
 
 
 def write_to_file(content, filename):
-    fil = filename + '.txt'
+    fil = filename + ".txt"
     if os.path.exists(fil):
         os.remove(fil)
-    with open(fil, 'x') as fwrite:
+    with open(fil, "x") as fwrite:
         fwrite.writelines("%s\n" % s for s in content)
-    print('Done')
+    print("Done")
     return
 
 
@@ -54,13 +58,14 @@ def format_time(elapsed):
 
 
 def normalize_whitespace(string):
-    return re.sub(r'(\s)\1+', r'\1', string)
+    return re.sub(r"(\s)\1+", r"\1", string)
 
 
-def create_text_tokenizer(model_base_name,
-                          additional_tokens=None,
-                          special_tokens=None,
-                          ):
+def create_text_tokenizer(
+    model_base_name,
+    additional_tokens=None,
+    special_tokens=None,
+):
     """
     Creates a text tokenizer based on the specified models-base-name
 
@@ -80,7 +85,7 @@ def create_text_tokenizer(model_base_name,
 
 
 def pad_seq(
-        seq: Union[np.ndarray, torch.Tensor, List], max_batch_len: int, pad_value: int
+    seq: Union[np.ndarray, torch.Tensor, List], max_batch_len: int, pad_value: int
 ) -> List[int]:
     if len(seq) > max_batch_len:
         seq = seq.to(torch.long).unsqueeze(0)[:, :max_batch_len]
@@ -98,14 +103,16 @@ class Features:
     decoder_attention_mask: Optional[List[int]] = field(default_factory=list)
 
 
-class SmartCollator():
-    def __init__(self,
-                 pad_token_id: int,
-                 context_max_len: int,
-                 context_sampling_bounds: tuple,
-                 label_pad_token_id: int = -100,
-                 max_len: int = 512,
-                 is_inference: bool = False):
+class SmartCollator:
+    def __init__(
+        self,
+        pad_token_id: int,
+        context_max_len: int,
+        context_sampling_bounds: tuple,
+        label_pad_token_id: int = -100,
+        max_len: int = 512,
+        is_inference: bool = False,
+    ):
         super().__init__()
         self.pad_token_id = pad_token_id
         self.label_pad_token_id = label_pad_token_id
@@ -119,34 +126,40 @@ class SmartCollator():
         batch_attention_masks: List = list()
         decoder_attention_mask: List = list()
         labels: List = list()
-        max_size = min([max([len(ex.input_ids)
-                             for ex in batch]), self.max_len])
+        max_size = min([max([len(ex.input_ids) for ex in batch]), self.max_len])
 
         max_size_output = min(
-            [max([len(ex.labels) for ex in batch]), self.max_len])  # type: ignore
+            [max([len(ex.labels) for ex in batch]), self.max_len]
+        )  # type: ignore
 
         for item in batch:
-            batch_inputs += [pad_seq(item.input_ids,
-                                     max_size, self.pad_token_id)]
-            batch_attention_masks += [
-                pad_seq(item.attention_mask, max_size, 0)]
+            batch_inputs += [pad_seq(item.input_ids, max_size, self.pad_token_id)]
+            batch_attention_masks += [pad_seq(item.attention_mask, max_size, 0)]
 
             if not self.is_inference:
-                labels += [pad_seq(item.labels, max_size_output,
-                                   self.label_pad_token_id)]
+                labels += [
+                    pad_seq(item.labels, max_size_output, self.label_pad_token_id)
+                ]
                 decoder_attention_mask += [
                     pad_seq(item.decoder_attention_mask, max_size_output, 0)
                 ]
 
         input_ids = torch.concat(batch_inputs, 0)
         attention_mask = torch.concat(batch_attention_masks, 0)
+
         labels = torch.concat(labels, 0)
         decoder_attention_mask = torch.concat(decoder_attention_mask, 0)
 
         # Compute the context bounds for this batch
-        boundary = np.random.uniform(self.context_sampling_bounds[0], self.context_sampling_bounds[1])
-        boundary_start = int(input_ids.shape[-1] * boundary)
-        boundary_end = boundary_start + self.context_max_len
+        # boundary = 0.45
+        # boundary_start = int(input_ids.shape[-1] * boundary)
+        # boundary_end = boundary_start + self.context_max_len
+
+        context_boundary = compute_context_boundary(
+            input_ids.shape[-1],
+            context_max_len=self.context_max_len,
+            context_sampling_bounds=self.context_sampling_bounds,
+        )
 
         if not self.is_inference:
             return dict(
@@ -154,13 +167,13 @@ class SmartCollator():
                 attention_mask=attention_mask,
                 labels=labels,
                 decoder_attention_mask=decoder_attention_mask,
-                boundary=(boundary_start, boundary_end)
-            )
+                context_boundary=context_boundary,
+            ) # type: ignore
         else:
             return dict(
                 input_ids=torch.concat(batch_inputs, 0),
                 attention_mask=torch.concat(batch_attention_masks, 0),
-                boundary=(boundary_start, boundary_end)
+                context_boundary=context_boundary,
             )
 
 
@@ -175,7 +188,9 @@ class DatasetProcessor(Dataset, metaclass=abc.ABCMeta):
         self.data = data
         self.use_special_token = use_special_token
 
-    def __len__(self, ):
+    def __len__(
+        self,
+    ):
         return len(self.data)
 
     def __getitem__(self, idx):
