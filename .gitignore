@@ -2,3 +2,5 @@ trained_models_sum_boundary/
 *.out
 *.pyc
 __pycache__/
+trained-models/
+outputs/

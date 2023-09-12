@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import logging
 import math
 import random
@@ -18,7 +17,6 @@ from transformers.models.bart.modeling_bart import (
     CrossEntropyLoss,
     Seq2SeqLMOutput,
     Seq2SeqModelOutput,
-    BartEncoderLayer,
     _expand_mask,
     shift_tokens_right,
 )

@@ -22,47 +22,85 @@ from transformers.models.bart.modeling_bart import (
     _expand_mask,
     shift_tokens_right,
 )
+import numpy as np
 
 from context_enforcement.models.common import EncoderOutputs, Seq2SeqLMOutputBoundary, Seq2SeqModelOutputBoundary
-from context_enforcement.models.context_enforcer import ContextEnforcementCrossed,ContextEnforcement, compute_context_boundary
+from context_enforcement.models.context_enforcer import ContextEnforcementCrossed, compute_context_boundary, split_contexts_with_boundary
 
 logger = logging.getLogger(__name__)
 
 
 
 
-class BartEncoderLayerWithEnforcer(nn.Module):
+
+class ContextSelectionBartLayer(nn.Module):
     def __init__(self,
                  config: BartConfig,
-                 is_normal_layer: bool = False
+                 focus_context_index=1
                  ):
         super().__init__()
-        self._is_normal_layer = is_normal_layer
         self.embed_dim = config.d_model
-        if is_normal_layer:
-            self.self_attn = BartAttention(
-                embed_dim=self.embed_dim,
-                num_heads=config.encoder_attention_heads,
-                dropout=config.attention_dropout,
-            )
-            self.self_attn_layer_norm = nn.LayerNorm(self.embed_dim)
-            logger.info("Normal SA Layer")
         
+        # Check if use_random_restriction is true or false
+        self.context_enforcer = None
+        self.context_enforcer_layer_norm = None
+        self.self_attn = BartAttention(
+            embed_dim=self.embed_dim,
+            num_heads=config.encoder_attention_heads,
+            dropout=config.attention_dropout,
+        )
+        self.self_attn_layer_norm = nn.LayerNorm(self.embed_dim)
+
         self.dropout = config.dropout
         self.activation_fn = ACT2FN[config.activation_function]
         self.activation_dropout = config.activation_dropout
         self.fc1 = nn.Linear(self.embed_dim, config.encoder_ffn_dim)
         self.fc2 = nn.Linear(config.encoder_ffn_dim, self.embed_dim)
         self.final_layer_norm = nn.LayerNorm(self.embed_dim)
-        self.context_enforcer = None
-        self.context_enforcer_layer_norm = None
-        if not self._is_normal_layer:
-            self.context_enforcer = ContextEnforcement(self.embed_dim,
-                                                              activation_function=config.activation_function,
-                                                              num_heads=config.encoder_attention_heads)
-            self.context_enforcer_layer_norm = nn.LayerNorm(self.embed_dim)
-            logger.info("Context Enforcement Layer")
+        
+        self.focus_context_index= focus_context_index
+    
+    def _compute_context_rep(self,rep1,
+                             rep2,
+                             attention_mask,
+                             layer_head_mask: torch.FloatTensor,
+            output_attentions: Optional[bool] = False,):
+        """_summary_
 
+        Args:
+            rep1 (_type_): _description_
+            rep2 (_type_): _description_
+            attention_mask (_type_): _description_
+            layer_head_mask (torch.FloatTensor): _description_
+            output_attentions (Optional[bool], optional): _description_. Defaults to False.
+        """
+        residual= rep1
+        hidden_states, attn_weights, _ = self.self_attn(
+            hidden_states=rep1,
+            key_value_states=rep2,
+            attention_mask=attention_mask,
+            layer_head_mask=layer_head_mask,
+            output_attentions=output_attentions,
+        )
+        
+        hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
+        hidden_states = residual + hidden_states
+        hidden_states = self.self_attn_layer_norm(hidden_states)
+
+        residual = hidden_states
+        hidden_states = self.activation_fn(self.fc1(hidden_states))
+        hidden_states = nn.functional.dropout(hidden_states, p=self.activation_dropout, training=self.training)
+        hidden_states = self.fc2(hidden_states)
+        hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
+        hidden_states = residual + hidden_states
+
+        hidden_states = self.final_layer_norm(hidden_states)
+        
+        return hidden_states,attn_weights
+    
+    
+        
+    
     def forward(
             self,
             hidden_states: torch.FloatTensor,
@@ -70,7 +108,7 @@ class BartEncoderLayerWithEnforcer(nn.Module):
             context_boundary: Tuple[int, int],
             layer_head_mask: torch.FloatTensor,
             output_attentions: Optional[bool] = False,
-    ) -> Tuple[torch.FloatTensor, Optional[torch.FloatTensor]]:
+    ) -> Tuple[torch.FloatTensor, Optional[torch.FloatTensor]]: # type: ignore
         """
         Args:
             hidden_states (`torch.FloatTensor`): input to the layer of shape `(seq_len, batch, embed_dim)`
@@ -84,35 +122,102 @@ class BartEncoderLayerWithEnforcer(nn.Module):
         """
         residual = hidden_states
         
-        if self._is_normal_layer:
-            hidden_states, attn_weights, _ = self.self_attn(
-                hidden_states=hidden_states,
-                attention_mask=attention_mask,
-                layer_head_mask=layer_head_mask,
-                output_attentions=output_attentions,
-            )
-            hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
-            hidden_states = residual + hidden_states
-            hidden_states = self.self_attn_layer_norm(hidden_states)
+        chunked_hidden_states = split_contexts_with_boundary(
+            hidden_states,
+            context_boundary,
+        )
+        
+        # [left_context, mid_context, right_context]
+        focus_context = chunked_hidden_states[self.focus_context_index]
+        aux_context1, aux_context2 =[chunked_hidden_states[idx] for idx in range(3) if idx != self.focus_context_index] 
+        
+
+        boundary_start, boundary_end = context_boundary
+        fc_seq_len = focus_context.shape[1]
+        lc_seq_len = aux_context1.shape[1]
+        rc_seq_len = aux_context2.shape[1]
+        aux1_attention = None
+        aux2_attention = None
+        focus_attention_mask = None
+        if attention_mask is not None:
+                        
+            if self.focus_context_index==1:
+                zc= torch.zeros(size=(aux_context1.shape[0], 1, fc_seq_len, 1),device= attention_mask.device)
+        
+                aux1_attention = attention_mask[:, :, :boundary_start, boundary_start:boundary_end]
+                aux2_attention = attention_mask[:, :, boundary_end:, boundary_start:boundary_end]
+
+                
+                focus_attention_mask = torch.concat([attention_mask[:, :, boundary_start:boundary_end, :boundary_start],
+                                                    zc,
+                                                    attention_mask[:, :, boundary_start:boundary_end, boundary_end:]
+                                                    ], dim=3)
+            elif self.focus_context_index==0:
+                aux1_attention = attention_mask[:, :, boundary_start:boundary_end, :boundary_start]
+                aux2_attention = attention_mask[:, :, boundary_end:, :boundary_start
+                                                ]
+                focus_attention_mask = torch.concat([attention_mask[:, :, :boundary_start, boundary_start:boundary_end],
+                                                   
+                                                    attention_mask[:, :, :boundary_start, boundary_end:]
+                                                    ], dim=3)
+                
+                
+            elif self.focus_context_index==2:
+                aux1_attention = attention_mask[:, :, :boundary_start, boundary_end:]
+                aux2_attention = attention_mask[:, :, boundary_start:boundary_end, boundary_end:]
+                
+                focus_attention_mask = torch.concat([attention_mask[:, :,boundary_end:,  :boundary_start],
+                                                    
+                                                    attention_mask[:, :,boundary_end:, boundary_start:boundary_end]
+                                                    ], dim=3)
+            # Compute the context
+            
+            aux1_focus, left_focus_attention = self._compute_context_rep(
+            rep1=aux_context1,
+            rep2=focus_context,
+            attention_mask=aux1_attention,
+            layer_head_mask=layer_head_mask,
+            output_attentions=output_attentions,
+        )
+            
+            aux2_focus, right_focus_attention = self._compute_context_rep(
+            rep1=aux_context2,
+            rep2=focus_context,
+            attention_mask=aux2_attention,
+            layer_head_mask=layer_head_mask,
+            output_attentions=output_attentions,
+        )
+            
+        aux2_focus = aux2_focus + aux_context2
+        aux1_focus = aux1_focus + aux_context1
+        
+        if self.focus_context_index==1:
+            boundary = torch.zeros(
+            (aux1_focus.shape[0], 1, aux1_focus.shape[-1]), device=aux1_focus.device
+        )
+            context = torch.concat([aux1_focus, boundary, aux2_focus], dim=1)
         else:
-            # Put the context enforcer here
-            residual = hidden_states
-            hidden_states,  attn_weights = self.context_enforcer(hidden_states,
-                                                                context_boundary,
-                                                                output_attentions)
-            hidden_states = nn.functional.dropout(hidden_states[1], p=self.dropout, training=self.training)
-            hidden_states = residual + hidden_states
-            hidden_states = self.context_enforcer_layer_norm(hidden_states)
-            # End of context enforcer
-
-        residual = hidden_states
-        hidden_states = self.activation_fn(self.fc1(hidden_states))
-        hidden_states = nn.functional.dropout(hidden_states, p=self.activation_dropout, training=self.training)
-        hidden_states = self.fc2(hidden_states)
-        hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
-        hidden_states = residual + hidden_states
-
-        hidden_states = self.final_layer_norm(hidden_states)
+            context = torch.concat([aux1_focus,aux2_focus], dim=1)
+        
+        focus_rep, focus_attention= self._compute_context_rep(rep1=focus_context,
+                                                     rep2=context,
+                                                     attention_mask=focus_attention_mask,
+                                                     layer_head_mask=layer_head_mask,
+                                                     output_attentions=output_attentions, )
+        focus_rep = focus_rep + focus_context
+        
+        if self.focus_context_index==1:
+            full_rep = torch.concat([aux1_focus, focus_rep, aux2_focus], dim=1)
+            atten_weights = [left_focus_attention, focus_attention, right_focus_attention]
+        elif self.focus_context_index==0:
+            full_rep = torch.concat([focus_rep, aux1_focus, aux2_focus], dim=1)
+            atten_weights = [ focus_attention,left_focus_attention, right_focus_attention]
+        else:
+            full_rep = torch.concat([ aux1_focus, aux2_focus,focus_rep], dim=1)
+            atten_weights = [focus_attention,left_focus_attention, right_focus_attention]
+        
+        
+        hidden_states = self.final_layer_norm(full_rep)
 
         if hidden_states.dtype == torch.float16 and (
                 torch.isinf(hidden_states).any() or torch.isnan(hidden_states).any()
@@ -122,11 +227,13 @@ class BartEncoderLayerWithEnforcer(nn.Module):
                                         min=-clamp_value, max=clamp_value)
 
         outputs = (hidden_states,)
-
+        
         if output_attentions:
-            outputs += (attn_weights, )
+            outputs += (atten_weights,)
 
         return outputs
+        
+ 
 
 
 class BartEncoderWithEnforcer(BartPretrainedModel):
@@ -164,10 +271,19 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
             config.max_position_embeddings,
             embed_dim,
         )
-        self.layers = nn.ModuleList(
-            [BartEncoderLayerWithEnforcer(config,
-                                          is_normal_layer = ((idx+1)%2)!=0) for idx in range(config.encoder_layers)]
-        )
+        
+        focus_map = [0,1,2]
+        self.layers = nn.ModuleList()
+        for idx in range(config.encoder_layers):
+            normal_layer = ((idx+1)%2)==0 and idx< config.encoder_layers-1
+            if not normal_layer:
+                layer=ContextSelectionBartLayer(config,
+                                       focus_context_index=focus_map[idx%3]) 
+            else:
+                layer = BartEncoderLayer(config)
+            self.layers.append(layer)
+
+        
         self.layernorm_embedding = nn.LayerNorm(embed_dim)
 
         self.gradient_checkpointing = False
@@ -259,6 +375,7 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
             inputs_embeds = self.embed_tokens(input_ids) * self.embed_scale
 
         embed_pos = self.embed_positions(input)
+        
 
         hidden_states = inputs_embeds + embed_pos
         hidden_states = self.layernorm_embedding(hidden_states)
@@ -283,12 +400,14 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
                     f" {head_mask.size()[0]}."
                 )
         
+        num_layers= len(self.layers)
+        
         if context_boundary is None:
-            context_boundary = compute_context_boundary(input_ids.shape[-1],
+            context_boundary = compute_context_boundary(hidden_states.shape[1],
                                                         context_max_len=self.context_max_len,
                                                         context_sampling_bounds= self.context_sampling_bounds)
-
         for idx, encoder_layer in enumerate(self.layers):
+            normal_layer = ((idx+1)%2)==0 and idx< num_layers-1
             if output_hidden_states:
                 encoder_states = encoder_states + (hidden_states,)
             # add LayerDrop (see https://arxiv.org/abs/1909.11556 for description)
@@ -305,24 +424,41 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
                             return module(*inputs, output_attentions)
 
                         return custom_forward
-
-                    layer_outputs = torch.utils.checkpoint.checkpoint(
+                    if not normal_layer:
+                        layer_outputs = torch.utils.checkpoint.checkpoint(
+                            create_custom_forward(encoder_layer),
+                            hidden_states,
+                            attention_mask_,
+                            context_boundary,
+                            (head_mask[idx] if head_mask is not None else None),
+                        ) 
+                    else:
+                        layer_outputs = torch.utils.checkpoint.checkpoint(
                         create_custom_forward(encoder_layer),
                         hidden_states,
                         attention_mask_,
-                        context_boundary,
                         (head_mask[idx] if head_mask is not None else None),
-                    )
+                    ) 
                 else:
-                    layer_outputs = encoder_layer(
-                        hidden_states,
-                        attention_mask_,
-                        context_boundary=context_boundary,
-                        layer_head_mask=(
-                            head_mask[idx] if head_mask is not None else None
-                        ),
-                        output_attentions=output_attentions,
-                    )
+                    if not normal_layer:
+                        layer_outputs = encoder_layer(
+                            hidden_states,
+                            attention_mask_,
+                            context_boundary=context_boundary,
+                            layer_head_mask=(
+                                head_mask[idx] if head_mask is not None else None
+                            ),
+                            output_attentions=output_attentions,
+                        )
+                    else:
+                        layer_outputs = encoder_layer(
+                            hidden_states,
+                            attention_mask_,
+                            layer_head_mask=(
+                                head_mask[idx] if head_mask is not None else None
+                            ),
+                            output_attentions=output_attentions,
+                        )
 
                 hidden_states = layer_outputs[0]
 
@@ -332,6 +468,9 @@ class BartEncoderWithEnforcer(BartPretrainedModel):
         if output_hidden_states:
             encoder_states = encoder_states + (hidden_states,)
 
+        
+        
+        # Randomly select part of the hidden states
         hidden_states = hidden_states[:, context_boundary[0]:context_boundary[1], :]
         context_len = hidden_states.shape[1]
 
@@ -372,6 +511,7 @@ class ContextualisedBartModel(BartPretrainedModel, ):
         padding_idx, vocab_size = config.pad_token_id, config.vocab_size
         self.shared = nn.Embedding(vocab_size, config.d_model, padding_idx)
 
+        # Check if use_random_restriction is true or false
         self.encoder = BartEncoderWithEnforcer(config, self.shared)
 
         self.decoder = BartDecoder(config, self.shared)
@@ -449,11 +589,8 @@ class ContextualisedBartModel(BartPretrainedModel, ):
             return_dict if return_dict is not None else self.config.use_return_dict
         )
 
-        if context_boundary is None:
-            context_boundary = compute_context_boundary(input_ids.shape[-1],
-                                                        context_max_len=self.context_max_len,
-                                                        context_sampling_bounds= self.context_sampling_bounds)
-
+        
+        
         if encoder_outputs is None:
             encoder_outputs = self.encoder(
                 input_ids=input_ids,
@@ -822,9 +959,7 @@ class BartForContextualRecoveryMultiLoss(BartForContextualRecovery):
             seq_len=encoder_outputs[0].shape[1]
         
         for idx,context_len  in enumerate(self.context_max_len_list):
-            context_boundary = compute_context_boundary(seq_len,
-                                                        context_max_len=context_len,
-                                                        context_sampling_bounds= self.context_sampling_bounds)
+            context_boundary = compute_context_boundary(seq_len,context_max_len=context_len,context_sampling_bounds= self.context_sampling_bounds)
 
             outputs: Seq2SeqModelOutputBoundary = self.model(
                 input_ids,

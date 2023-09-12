@@ -3,7 +3,7 @@ export PYTHONPATH=.:$PYTHONPATH
 nohup accelerate launch context_enforcement/trainers/train_bart.py \
 --is-baseline \
 --max-seq-len 800 \
---task-type xsum \
+--task-type wikihow \
 --num-train-epochs 15 \
 --eval-steps 1000 \
 --lr-scheduler-type linear \
@@ -17,4 +17,4 @@ nohup accelerate launch context_enforcement/trainers/train_bart.py \
 --run-id bart-base-baseline \
 --fp16 \
 --gradient-accumulation-steps 6 \
---output-dir trained-models/  >> logs/training_logs_bart_base_model_baseline.txt &
+--output-dir trained-models/wikihow/  >> logs/wikihow/training_logs_bart_base_model_baseline.txt &

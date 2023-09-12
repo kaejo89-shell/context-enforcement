@@ -54,6 +54,7 @@ class BartEncoderLayerWithEnforcer(nn.Module):
         self.context_enforcer = None
         self.context_enforcer_layer_norm = None
         if not self._is_normal_layer:
+            print('Adding cross context enforcement')
             self.context_enforcer = ContextEnforcementCrossed(self.embed_dim,
                                                               activation_function=config.activation_function,
                                                               num_heads=config.encoder_attention_heads)
@@ -654,39 +655,7 @@ class BartForContextualRecovery(BartPretrainedModel):
             context_boundary=outputs.context_boundary
         )
 
-    def strip_attention_mask565(self, delimiter_points_idxs, attention_mask):
-        all_attention_masks = []
-        all_input_ids = []
-        max_length = 0
 
-        # For item in input_ids, embeddings, attention_mask, input_ids, select the
-        # portion of the tensor after the delimiter_point_id
-        for delimiter_point_id, att_mask in zip(
-                delimiter_points_idxs, attention_mask
-        ):
-
-            if max_length < att_mask.shape[0]:
-                max_length = att_mask.shape[0]
-
-            all_attention_masks.append(att_mask[delimiter_point_id + 1:])
-
-        # Reshape all the section of interest for each item in all_input_ids, all_embeddings, all_attention_masks to
-        # the same size
-        batch_attention_masks: List = list()
-
-        for idx, att_mask in enumerate(all_attention_masks):
-            len_diff = max_length - att_mask.shape[0]
-            if max_length > att_mask.shape[0]:
-                attn_pads = torch.zeros(
-                    len_diff,
-                ).to(att_mask.device)
-                att_mask = torch.concat([att_mask, attn_pads], -1)
-
-            batch_attention_masks += [att_mask.view(-1, max_length)]
-
-        # Create the final tensors with the contexts removed
-        batch_attention_masks = torch.concat(batch_attention_masks, 0)
-        return batch_attention_masks
 
     def strip_attention_mask(self,
                              context_boundary,

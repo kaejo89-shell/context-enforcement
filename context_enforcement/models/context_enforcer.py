@@ -251,7 +251,6 @@ class ContextEnforcement(Module):
         self._wlc = Linear(dim, dim)
         self._wrc = Linear(dim, dim)
         self._activate_func = ACT2FN[activation_function]
-        # self._wfc = Linear(dim,dim)
 
     def forward(self,
                 hidden_rep,
@@ -270,13 +269,12 @@ class ContextEnforcement(Module):
                                                                                     context_boundary, )
 
         # Compute the context focus attention
-        left_focus, left_focus_attention = self._left_mha(
-                                                          
-                                                          focus_context,
-                                                          left_context,left_context, )
-        right_focus, right_focus_attention = self._right_mha(
-                                                             focus_context,
-                                                             right_context,right_context, )
+        left_focus, left_focus_attention = self._left_mha(focus_context,
+                                                          left_context,
+                                                          left_context, )
+        right_focus, right_focus_attention = self._right_mha(focus_context,
+                                                             right_context,
+                                                             right_context, )
         
         rl_reps = self._activate_func(self._wrc(right_focus) + self._wlc(left_focus))
         focus_combined_rep = rl_reps + focus_context

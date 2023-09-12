@@ -108,6 +108,16 @@ if __name__ == "__main__":
         context_sampling_bounds=context_sampling_bounds,
         context_max_len_list=context_max_len_list,
     )
+    
+    training_full_path = os.path.join(arguments.output_dir,
+                               arguments.run_id)
+    os.makedirs(training_full_path,exist_ok=True)
+    train_args_path = os.path.join(training_full_path, "train_args.ap")
+    pk.dump(
+        arguments,
+        open(train_args_path, "wb"),
+    )
+
 
     training_arguments = get_training_arguments(**configs)
     custom_trainer = CustomTrainer(
@@ -126,9 +136,3 @@ if __name__ == "__main__":
     )
 
     custom_trainer.train()
-
-    output_path = os.path.join(arguments.output_dir, arguments.run_id, "train_args.ap")
-    pk.dump(
-        arguments,
-        open(output_path, "wb"),
-    )

@@ -1,0 +1,159 @@
+[rank: 0] Global seed set to 1376
+[nltk_data] Downloading package punkt to /home/nlplab/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+Found cached dataset xsum (/home/nlplab/.cache/huggingface/datasets/xsum/default/1.2.0/082863bf4754ee058a5b6f6525d0cb2b18eadb62c7b370b095d1364050a52b71)
+  0%|          | 0/3 [00:00<?, ?it/s]100%|██████████| 3/3 [00:00<00:00, 857.09it/s]
+[2023-09-09 19:44:32,802] [INFO] [comm.py:622:init_distributed] Initializing TorchBackend in DeepSpeed with backend nccl
+Using the `WANDB_DISABLED` environment variable is deprecated and will be removed in v5. Use the --report_to flag to control the integrations used for logging result (for instance --report_to none).
+Some weights of the model checkpoint at facebook/bart-base were not used when initializing BartForContextualRecovery: ['encoder.layers.5.self_attn.v_proj.bias', 'encoder.layers.3.self_attn.v_proj.weight', 'encoder.layers.3.self_attn.out_proj.bias', 'encoder.layers.1.self_attn_layer_norm.weight', 'encoder.layers.1.self_attn.k_proj.weight', 'encoder.layers.5.self_attn.out_proj.weight', 'encoder.layers.3.self_attn.q_proj.weight', 'encoder.layers.3.self_attn.out_proj.weight', 'encoder.layers.5.self_attn.q_proj.bias', 'encoder.layers.5.self_attn.out_proj.bias', 'encoder.layers.1.self_attn.v_proj.bias', 'encoder.layers.1.self_attn.out_proj.weight', 'encoder.layers.5.self_attn_layer_norm.weight', 'encoder.layers.5.self_attn.v_proj.weight', 'encoder.layers.1.self_attn.k_proj.bias', 'encoder.layers.3.self_attn.k_proj.bias', 'encoder.layers.3.self_attn.v_proj.bias', 'encoder.layers.5.self_attn.k_proj.bias', 'encoder.layers.1.self_attn.v_proj.weight', 'encoder.layers.5.self_attn_layer_norm.bias', 'encoder.layers.1.self_attn.q_proj.bias', 'encoder.layers.3.self_attn.k_proj.weight', 'encoder.layers.3.self_attn_layer_norm.bias', 'encoder.layers.3.self_attn_layer_norm.weight', 'encoder.layers.5.self_attn.k_proj.weight', 'encoder.layers.5.self_attn.q_proj.weight', 'encoder.layers.1.self_attn.q_proj.weight', 'encoder.layers.1.self_attn.out_proj.bias', 'encoder.layers.3.self_attn.q_proj.bias', 'encoder.layers.1.self_attn_layer_norm.bias']
+- This IS expected if you are initializing BartForContextualRecovery from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BartForContextualRecovery from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BartForContextualRecovery were not initialized from the model checkpoint at facebook/bart-base and are newly initialized: ['encoder.layers.1.context_enforcer._wlc.bias', 'encoder.layers.1.context_enforcer._right_mha.out_proj.bias', 'encoder.layers.1.context_enforcer_layer_norm.bias', 'encoder.layers.3.context_enforcer_layer_norm.bias', 'encoder.layers.1.context_enforcer._left_mha.in_proj_bias', 'encoder.layers.1.context_enforcer._wrc.weight', 'encoder.layers.3.context_enforcer._wlc.bias', 'encoder.layers.3.context_enforcer._wrc.weight', 'encoder.layers.1.context_enforcer._right_mha.out_proj.weight', 'encoder.layers.5.context_enforcer._left_mha.out_proj.bias', 'encoder.layers.3.context_enforcer._wrc.bias', 'encoder.layers.5.context_enforcer._left_mha.in_proj_bias', 'encoder.layers.5.context_enforcer._right_mha.out_proj.weight', 'encoder.layers.1.context_enforcer._left_mha.in_proj_weight', 'encoder.layers.5.context_enforcer._wrc.bias', 'encoder.layers.1.context_enforcer._wrc.bias', 'encoder.layers.1.context_enforcer._right_mha.in_proj_weight', 'encoder.layers.5.context_enforcer_layer_norm.weight', 'encoder.layers.1.context_enforcer._left_mha.out_proj.bias', 'encoder.layers.3.context_enforcer_layer_norm.weight', 'encoder.layers.3.context_enforcer._right_mha.out_proj.bias', 'encoder.layers.5.context_enforcer._wlc.weight', 'encoder.layers.5.context_enforcer._wrc.weight', 'encoder.layers.3.context_enforcer._right_mha.out_proj.weight', 'encoder.layers.3.context_enforcer._left_mha.in_proj_weight', 'encoder.layers.3.context_enforcer._wlc.weight', 'encoder.layers.1.context_enforcer_layer_norm.weight', 'encoder.layers.3.context_enforcer._left_mha.out_proj.bias', 'encoder.layers.5.context_enforcer._left_mha.out_proj.weight', 'encoder.layers.5.context_enforcer._right_mha.out_proj.bias', 'encoder.layers.5.context_enforcer._right_mha.in_proj_bias', 'encoder.layers.1.context_enforcer._right_mha.in_proj_bias', 'encoder.layers.1.context_enforcer._wlc.weight', 'encoder.layers.5.context_enforcer_layer_norm.bias', 'encoder.layers.5.context_enforcer._right_mha.in_proj_weight', 'encoder.layers.3.context_enforcer._left_mha.out_proj.weight', 'encoder.layers.5.context_enforcer._left_mha.in_proj_weight', 'encoder.layers.3.context_enforcer._right_mha.in_proj_bias', 'encoder.layers.5.context_enforcer._wlc.bias', 'encoder.layers.3.context_enforcer._left_mha.in_proj_bias', 'encoder.layers.3.context_enforcer._right_mha.in_proj_weight', 'encoder.layers.1.context_enforcer._left_mha.out_proj.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+/home/nlplab/anaconda3/envs/development/lib/python3.9/site-packages/transformers/optimization.py:407: FutureWarning: This implementation of AdamW is deprecated and will be removed in a future version. Use the PyTorch implementation torch.optim.AdamW instead, or set `no_deprecation_warning=True` to disable this warning
+  warnings.warn(
+Token indices sequence length is longer than the specified maximum sequence length for this model (1075 > 1024). Running this sequence through the model will result in indexing errors
+[W reducer.cpp:1300] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+{'loss': 6.0223, 'learning_rate': 1.333452818352899e-06, 'epoch': 0.12}
+{'loss': 3.3938, 'learning_rate': 2.674970875526481e-06, 'epoch': 0.24}
+{'loss': 3.0639, 'learning_rate': 4.016488932700062e-06, 'epoch': 0.35}
+{'loss': 2.8947, 'learning_rate': 5.360695402813872e-06, 'epoch': 0.47}
+{'loss': 2.7898, 'learning_rate': 6.7049018729276815e-06, 'epoch': 0.59}
+{'loss': 2.7053, 'learning_rate': 8.049108343041492e-06, 'epoch': 0.71}
+{'loss': 2.6479, 'learning_rate': 9.390626400215074e-06, 'epoch': 0.82}
+{'loss': 2.5949, 'learning_rate': 1.0734832870328883e-05, 'epoch': 0.94}
+{'eval_loss': 2.2548153400421143, 'eval_runtime': 53.3037, 'eval_samples_per_second': 212.631, 'eval_steps_per_second': 26.584, 'epoch': 1.0}
+{'loss': 2.5464, 'learning_rate': 1.2079039340442693e-05, 'epoch': 1.06}
+{'loss': 2.5057, 'learning_rate': 1.3423245810556502e-05, 'epoch': 1.18}
+{'loss': 2.4725, 'learning_rate': 1.4767452280670312e-05, 'epoch': 1.29}
+{'loss': 2.4484, 'learning_rate': 1.611165875078412e-05, 'epoch': 1.41}
+{'loss': 2.4221, 'learning_rate': 1.745586522089793e-05, 'epoch': 1.53}
+{'loss': 2.397, 'learning_rate': 1.880007169101174e-05, 'epoch': 1.65}
+{'loss': 2.3715, 'learning_rate': 2.014427816112555e-05, 'epoch': 1.76}
+{'loss': 2.3595, 'learning_rate': 2.1485796218299133e-05, 'epoch': 1.88}
+{'loss': 2.3482, 'learning_rate': 2.2830002688412938e-05, 'epoch': 2.0}
+{'eval_loss': 2.1041786670684814, 'eval_runtime': 53.1981, 'eval_samples_per_second': 213.053, 'eval_steps_per_second': 26.636, 'epoch': 2.0}
+{'loss': 2.2732, 'learning_rate': 2.417152074558652e-05, 'epoch': 2.12}
+{'loss': 2.2607, 'learning_rate': 2.5515727215700332e-05, 'epoch': 2.23}
+{'loss': 2.2608, 'learning_rate': 2.685993368581414e-05, 'epoch': 2.35}
+{'loss': 2.2468, 'learning_rate': 2.8204140155927953e-05, 'epoch': 2.47}
+{'loss': 2.2254, 'learning_rate': 2.954834662604176e-05, 'epoch': 2.59}
+{'loss': 2.2261, 'learning_rate': 3.0892553096155574e-05, 'epoch': 2.71}
+{'loss': 2.2177, 'learning_rate': 3.223675956626938e-05, 'epoch': 2.82}
+{'loss': 2.2015, 'learning_rate': 3.3580966036383185e-05, 'epoch': 2.94}
+{'eval_loss': 2.0238773822784424, 'eval_runtime': 53.164, 'eval_samples_per_second': 213.189, 'eval_steps_per_second': 26.653, 'epoch': 3.0}
+{'loss': 2.1518, 'learning_rate': 3.4922484093556774e-05, 'epoch': 3.06}
+{'loss': 2.1044, 'learning_rate': 3.6266690563670586e-05, 'epoch': 3.18}
+{'loss': 2.1054, 'learning_rate': 3.761089703378439e-05, 'epoch': 3.29}
+{'loss': 2.1055, 'learning_rate': 3.89551035038982e-05, 'epoch': 3.41}
+{'loss': 2.1045, 'learning_rate': 4.029930997401201e-05, 'epoch': 3.53}
+{'loss': 2.1073, 'learning_rate': 4.164351644412582e-05, 'epoch': 3.65}
+{'loss': 2.0877, 'learning_rate': 4.2987722914239626e-05, 'epoch': 3.76}
+{'loss': 2.1003, 'learning_rate': 4.433192938435344e-05, 'epoch': 3.88}
+{'loss': 2.0775, 'learning_rate': 4.5673447441527014e-05, 'epoch': 4.0}
+{'eval_loss': 1.980817198753357, 'eval_runtime': 53.1049, 'eval_samples_per_second': 213.427, 'eval_steps_per_second': 26.683, 'epoch': 4.0}
+{'loss': 1.9756, 'learning_rate': 4.7017653911640826e-05, 'epoch': 4.12}
+{'loss': 1.9848, 'learning_rate': 4.836186038175464e-05, 'epoch': 4.23}
+{'loss': 1.9991, 'learning_rate': 4.970606685186845e-05, 'epoch': 4.35}
+{'loss': 1.9924, 'learning_rate': 5.1050273321982256e-05, 'epoch': 4.47}
+{'loss': 1.9913, 'learning_rate': 5.239447979209607e-05, 'epoch': 4.59}
+{'loss': 1.9897, 'learning_rate': 5.373868626220988e-05, 'epoch': 4.7}
+{'loss': 1.9884, 'learning_rate': 5.5082892732323685e-05, 'epoch': 4.82}
+{'loss': 1.9911, 'learning_rate': 5.642709920243749e-05, 'epoch': 4.94}
+{'eval_loss': 1.9571852684020996, 'eval_runtime': 53.2044, 'eval_samples_per_second': 213.028, 'eval_steps_per_second': 26.633, 'epoch': 5.0}
+{'loss': 1.9254, 'learning_rate': 5.77713056725513e-05, 'epoch': 5.06}
+{'loss': 1.8675, 'learning_rate': 5.9115512142665115e-05, 'epoch': 5.18}
+{'loss': 1.8791, 'learning_rate': 5.975245494245664e-05, 'epoch': 5.29}
+{'loss': 1.8862, 'learning_rate': 5.902863898472749e-05, 'epoch': 5.41}
+{'loss': 1.8911, 'learning_rate': 5.8304823026998336e-05, 'epoch': 5.53}
+{'loss': 1.8884, 'learning_rate': 5.758100706926919e-05, 'epoch': 5.65}
+{'loss': 1.8898, 'learning_rate': 5.685719111154004e-05, 'epoch': 5.76}
+{'loss': 1.8852, 'learning_rate': 5.613337515381089e-05, 'epoch': 5.88}
+{'loss': 1.8904, 'learning_rate': 5.5409559196081744e-05, 'epoch': 6.0}
+{'eval_loss': 1.932814121246338, 'eval_runtime': 53.1821, 'eval_samples_per_second': 213.117, 'eval_steps_per_second': 26.644, 'epoch': 6.0}
+{'loss': 1.7448, 'learning_rate': 5.46857432383526e-05, 'epoch': 6.12}
+{'loss': 1.7489, 'learning_rate': 5.396192728062345e-05, 'epoch': 6.23}
+{'loss': 1.7648, 'learning_rate': 5.3238111322894304e-05, 'epoch': 6.35}
+{'loss': 1.7652, 'learning_rate': 5.251429536516515e-05, 'epoch': 6.47}
+{'loss': 1.7644, 'learning_rate': 5.1790479407436e-05, 'epoch': 6.59}
+{'loss': 1.7751, 'learning_rate': 5.106666344970686e-05, 'epoch': 6.7}
+{'loss': 1.767, 'learning_rate': 5.0342847491977705e-05, 'epoch': 6.82}
+{'loss': 1.7681, 'learning_rate': 4.961903153424856e-05, 'epoch': 6.94}
+{'eval_loss': 1.9146313667297363, 'eval_runtime': 53.164, 'eval_samples_per_second': 213.189, 'eval_steps_per_second': 26.653, 'epoch': 7.0}
+{'loss': 1.6985, 'learning_rate': 4.8895215576519416e-05, 'epoch': 7.06}
+{'loss': 1.6352, 'learning_rate': 4.8171399618790265e-05, 'epoch': 7.17}
+{'loss': 1.6496, 'learning_rate': 4.744903129297658e-05, 'epoch': 7.29}
+{'loss': 1.6556, 'learning_rate': 4.6725215335247427e-05, 'epoch': 7.41}
+{'loss': 1.6613, 'learning_rate': 4.600139937751828e-05, 'epoch': 7.53}
+{'loss': 1.667, 'learning_rate': 4.527903105170459e-05, 'epoch': 7.65}
+{'loss': 1.6668, 'learning_rate': 4.4555215093975443e-05, 'epoch': 7.76}
+{'loss': 1.6682, 'learning_rate': 4.383139913624629e-05, 'epoch': 7.88}
+{'loss': 1.676, 'learning_rate': 4.310758317851714e-05, 'epoch': 8.0}
+{'eval_loss': 1.9142851829528809, 'eval_runtime': 53.2874, 'eval_samples_per_second': 212.696, 'eval_steps_per_second': 26.592, 'epoch': 8.0}
+{'loss': 1.5422, 'learning_rate': 4.2383767220787996e-05, 'epoch': 8.12}
+{'loss': 1.5559, 'learning_rate': 4.1659951263058845e-05, 'epoch': 8.23}
+{'loss': 1.5589, 'learning_rate': 4.0936135305329694e-05, 'epoch': 8.35}
+{'loss': 1.5658, 'learning_rate': 4.021231934760055e-05, 'epoch': 8.47}
+{'loss': 1.5656, 'learning_rate': 3.9488503389871405e-05, 'epoch': 8.59}
+{'loss': 1.5782, 'learning_rate': 3.876613506405771e-05, 'epoch': 8.7}
+{'loss': 1.5827, 'learning_rate': 3.804231910632856e-05, 'epoch': 8.82}
+{'loss': 1.5825, 'learning_rate': 3.731995078051487e-05, 'epoch': 8.94}
+{'eval_loss': 1.9225434064865112, 'eval_runtime': 53.2626, 'eval_samples_per_second': 212.795, 'eval_steps_per_second': 26.604, 'epoch': 9.0}
+{'loss': 1.5193, 'learning_rate': 3.659613482278573e-05, 'epoch': 9.06}
+{'loss': 1.4715, 'learning_rate': 3.5872318865056576e-05, 'epoch': 9.17}
+{'loss': 1.4724, 'learning_rate': 3.514850290732743e-05, 'epoch': 9.29}
+{'loss': 1.487, 'learning_rate': 3.442613458151374e-05, 'epoch': 9.41}
+{'loss': 1.4867, 'learning_rate': 3.3702318623784593e-05, 'epoch': 9.53}
+{'loss': 1.4908, 'learning_rate': 3.297850266605545e-05, 'epoch': 9.64}
+{'loss': 1.4975, 'learning_rate': 3.22546867083263e-05, 'epoch': 9.76}
+{'loss': 1.4956, 'learning_rate': 3.153087075059715e-05, 'epoch': 9.88}
+{'loss': 1.5032, 'learning_rate': 3.0807054792868e-05, 'epoch': 10.0}
+{'eval_loss': 1.9298170804977417, 'eval_runtime': 53.0901, 'eval_samples_per_second': 213.486, 'eval_steps_per_second': 26.69, 'epoch': 10.0}
+{'loss': 1.3964, 'learning_rate': 3.008323883513885e-05, 'epoch': 10.12}
+{'loss': 1.4, 'learning_rate': 2.9359422877409703e-05, 'epoch': 10.23}
+{'loss': 1.4117, 'learning_rate': 2.8635606919680558e-05, 'epoch': 10.35}
+{'loss': 1.4109, 'learning_rate': 2.7913238593866867e-05, 'epoch': 10.47}
+{'loss': 1.4206, 'learning_rate': 2.7189422636137716e-05, 'epoch': 10.59}
+{'loss': 1.4187, 'learning_rate': 2.646705431032403e-05, 'epoch': 10.7}
+{'loss': 1.4277, 'learning_rate': 2.574323835259488e-05, 'epoch': 10.82}
+{'loss': 1.4254, 'learning_rate': 2.5019422394865733e-05, 'epoch': 10.94}
+{'eval_loss': 1.932938575744629, 'eval_runtime': 53.2315, 'eval_samples_per_second': 212.919, 'eval_steps_per_second': 26.62, 'epoch': 11.0}
+{'loss': 1.3825, 'learning_rate': 2.4295606437136585e-05, 'epoch': 11.06}
+{'loss': 1.3326, 'learning_rate': 2.3571790479407437e-05, 'epoch': 11.17}
+{'loss': 1.3422, 'learning_rate': 2.284797452167829e-05, 'epoch': 11.29}
+{'loss': 1.3531, 'learning_rate': 2.2124158563949138e-05, 'epoch': 11.41}
+{'loss': 1.3521, 'learning_rate': 2.1400342606219994e-05, 'epoch': 11.53}
+{'loss': 1.36, 'learning_rate': 2.0677974280406303e-05, 'epoch': 11.64}
+{'loss': 1.3606, 'learning_rate': 1.9955605954592612e-05, 'epoch': 11.76}
+{'loss': 1.3656, 'learning_rate': 1.9231789996863464e-05, 'epoch': 11.88}
+{'loss': 1.3661, 'learning_rate': 1.8507974039134317e-05, 'epoch': 12.0}
+{'eval_loss': 1.9499199390411377, 'eval_runtime': 53.219, 'eval_samples_per_second': 212.969, 'eval_steps_per_second': 26.626, 'epoch': 12.0}
+{'loss': 1.2831, 'learning_rate': 1.778415808140517e-05, 'epoch': 12.11}
+{'loss': 1.295, 'learning_rate': 1.706178975559148e-05, 'epoch': 12.23}
+{'loss': 1.2956, 'learning_rate': 1.633797379786233e-05, 'epoch': 12.35}
+{'loss': 1.2937, 'learning_rate': 1.5614157840133182e-05, 'epoch': 12.47}
+{'loss': 1.3058, 'learning_rate': 1.4890341882404034e-05, 'epoch': 12.59}
+{'loss': 1.3006, 'learning_rate': 1.4166525924674886e-05, 'epoch': 12.7}
+{'loss': 1.3043, 'learning_rate': 1.3442709966945739e-05, 'epoch': 12.82}
+{'loss': 1.3074, 'learning_rate': 1.271889400921659e-05, 'epoch': 12.94}
+{'eval_loss': 1.966612458229065, 'eval_runtime': 53.2174, 'eval_samples_per_second': 212.976, 'eval_steps_per_second': 26.627, 'epoch': 13.0}
+{'loss': 1.2736, 'learning_rate': 1.1995078051487441e-05, 'epoch': 13.06}
+{'loss': 1.248, 'learning_rate': 1.1271262093758295e-05, 'epoch': 13.17}
+{'loss': 1.2561, 'learning_rate': 1.0547446136029145e-05, 'epoch': 13.29}
+{'loss': 1.2548, 'learning_rate': 9.825077810215456e-06, 'epoch': 13.41}
+{'loss': 1.2519, 'learning_rate': 9.101261852486308e-06, 'epoch': 13.53}
+{'loss': 1.2551, 'learning_rate': 8.377445894757159e-06, 'epoch': 13.64}
+{'loss': 1.2598, 'learning_rate': 7.653629937028013e-06, 'epoch': 13.76}
+{'loss': 1.2614, 'learning_rate': 6.932709243129781e-06, 'epoch': 13.88}
+{'loss': 1.2618, 'learning_rate': 6.208893285400632e-06, 'epoch': 14.0}
+{'eval_loss': 1.9774149656295776, 'eval_runtime': 53.092, 'eval_samples_per_second': 213.479, 'eval_steps_per_second': 26.69, 'epoch': 14.0}
+{'loss': 1.218, 'learning_rate': 5.485077327671484e-06, 'epoch': 14.11}
+{'loss': 1.2156, 'learning_rate': 4.7612613699423364e-06, 'epoch': 14.23}
+{'loss': 1.2196, 'learning_rate': 4.037445412213188e-06, 'epoch': 14.35}
+{'loss': 1.2283, 'learning_rate': 3.3136294544840398e-06, 'epoch': 14.47}
+{'loss': 1.2214, 'learning_rate': 2.589813496754892e-06, 'epoch': 14.58}
+{'loss': 1.2225, 'learning_rate': 1.8659975390257437e-06, 'epoch': 14.7}
+{'loss': 1.2273, 'learning_rate': 1.1421815812965956e-06, 'epoch': 14.82}
+{'loss': 1.2194, 'learning_rate': 4.1836562356744755e-07, 'epoch': 14.94}
+{'eval_loss': 1.9865331649780273, 'eval_runtime': 53.2997, 'eval_samples_per_second': 212.647, 'eval_steps_per_second': 26.586, 'epoch': 15.0}
+{'train_runtime': 41260.2902, 'train_samples_per_second': 74.18, 'train_steps_per_second': 1.545, 'train_loss': 1.7912607879028464, 'epoch': 15.0}

@@ -1,0 +1,27 @@
+[rank: 0] Global seed set to 1376
+[nltk_data] Downloading package punkt to /home/nlplab/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+[rank: 0] Global seed set to 1376
+[nltk_data] Downloading package wordnet to /home/nlplab/nltk_data...
+[nltk_data]   Package wordnet is already up-to-date!
+[nltk_data] Downloading package punkt to /home/nlplab/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+[nltk_data] Downloading package omw-1.4 to /home/nlplab/nltk_data...
+[nltk_data]   Package omw-1.4 is already up-to-date!
+Found cached dataset xsum (/home/nlplab/.cache/huggingface/datasets/xsum/default/1.2.0/082863bf4754ee058a5b6f6525d0cb2b18eadb62c7b370b095d1364050a
+  0%|          | 0/3 [00:00<?, ?it/s]
+100%|██████████| 3/3 [00:00<00:00, 764.92it/s]
+['trained-models/bart-base-baseline/checkpoint-42510', 'trained-models/bart-base-baseline/checkpoint-46761', 'trained-models/bart-base-baseline/checkpoint-25506', 'trained-models/bart-base-context-enhance-form1/checkpoint-46761', 'trained-models/bart-base-context-enhance-form1/checkpoint-29757', 'trained-models/bart-base-context-enhance-form1/checkpoint-51012']
+Token indices sequence length is longer than the specified maximumequence length for this model (1327 > 1024). Running this sequence through the model will result in indexing errors
+Performing inference using checkpoint-42510
+Using baseline model
+Done
+{'bleu': 0.1295512817008976, 'precisions': [0.43886838016679147, 0.18247600496966773, 0.10017322539935412, 0.05891934681781738], 'brevity_penalty': 0.8786265141463535, 'length_ratio': 0.8854295195542714, 'translation_length': 231067, 'reference_length': 260966, 'meteor': 0.3612663079973877, 'rouge1': 0.40783524282217876, 'rouge2': 0.1903146740903642, 'rougeL': 0.33496234085775334, 'rougeLsum': 0.3348497278535708}
+Performing inference using checkpoint-46761
+Using baseline model
+Done
+{'bleu': 0.1331429761562644, 'precisions': [0.4333684025951254, 0.1798485485906605, 0.09886653939444244, 0.058338401654299966], 'brevity_penalty': 0.9143790153912471, 'length_ratio': 0.9178437037775036, 'translation_length': 239526, 'reference_length': 260966, 'meteor': 0.3677292001505915, 'rouge1': 0.41097103107570543, 'rouge2': 0.19150443183743332, 'rougeL': 0.33695825897597687, 'rougeLsum': 0.3368342674936409}
+Performing inference using checkpoint-25506
+Using baseline model
+Done
+{'bleu': 0.12389589555539171, 'precisions': [0.4341115192623786, 0.1763369746174371, 0.09493966168216209, 0.054925042095463866], 'brevity_penalty': 0.8765288717972188, 'length_ratio': 0.8835595441551773, 'translation_length': 230579, 'reference_length': 260966, 'meteor': 0.3536778228633617, 'rouge1': 0.40197309681718374, 'rouge2': 0.1831824443853219, 'rougeL': 0.32785366783969916, 'rougeLsum': 0.32772271971666966}

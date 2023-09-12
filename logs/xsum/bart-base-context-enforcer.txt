@@ -1,0 +1,128 @@
+[rank: 0] Global seed set to 1376
+[nltk_data] Downloading package punkt to /home/nlplab/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+Found cached dataset xsum (/home/nlplab/.cache/huggingface/datasets/xsum/default/1.2.0/082863bf4754ee058a5b6f6525d0cb2b18eadb62c7b370b095d1364050a52b71)
+  0%|          | 0/3 [00:00<?, ?it/s]100%|██████████| 3/3 [00:00<00:00, 492.83it/s]
+[2023-09-04 04:39:01,766] [INFO] [comm.py:622:init_distributed] Initializing TorchBackend in DeepSpeed with backend nccl
+Using the `WANDB_DISABLED` environment variable is deprecated and will be removed in v5. Use the --report_to flag to control the integrations used for logging result (for instance --report_to none).
+Some weights of BartForContextualRecovery were not initialized from the model checkpoint at facebook/bart-base and are newly initialized: ['encoder.layers.3.context_enforcer._context_mha.in_proj_bias', 'encoder.layers.3.context_enforcer._right_mha.in_proj_bias', 'encoder.layers.1.context_enforcer._right_mha.in_proj_weight', 'encoder.layers.1.context_enforcer._context_mha.out_proj.weight', 'encoder.layers.1.context_enforcer._context_mha.out_proj.bias', 'encoder.layers.5.context_enforcer._context_mha.out_proj.weight', 'encoder.layers.3.context_enforcer._left_mha.out_proj.bias', 'encoder.layers.1.context_enforcer._right_mha.in_proj_bias', 'encoder.layers.5.context_enforcer._right_mha.in_proj_weight', 'encoder.layers.3.context_enforcer._wlc.weight', 'encoder.layers.1.context_enforcer._wrc.weight', 'encoder.layers.3.context_enforcer._wlc.bias', 'encoder.layers.1.context_enforcer._right_mha.out_proj.weight', 'encoder.layers.1.context_enforcer._left_mha.in_proj_bias', 'encoder.layers.1.context_enforcer._wlc.bias', 'encoder.layers.1.context_enforcer._right_mha.out_proj.bias', 'encoder.layers.5.context_enforcer._context_mha.out_proj.bias', 'encoder.layers.5.context_enforcer._left_mha.in_proj_bias', 'encoder.layers.1.context_enforcer._wfc.bias', 'encoder.layers.1.context_enforcer._left_mha.out_proj.bias', 'encoder.layers.5.context_enforcer._left_mha.out_proj.weight', 'encoder.layers.1.context_enforcer._left_mha.in_proj_weight', 'encoder.layers.3.context_enforcer._right_mha.out_proj.bias', 'encoder.layers.3.context_enforcer._wrc.bias', 'encoder.layers.5.context_enforcer._left_mha.out_proj.bias', 'encoder.layers.3.context_enforcer._left_mha.out_proj.weight', 'encoder.layers.3.context_enforcer._left_mha.in_proj_weight', 'encoder.layers.1.context_enforcer._wfc.weight', 'encoder.layers.3.context_enforcer._context_mha.out_proj.bias', 'encoder.layers.5.context_enforcer._wrc.bias', 'encoder.layers.1.context_enforcer_layer_norm.bias', 'encoder.layers.5.context_enforcer._wfc.bias', 'encoder.layers.3.context_enforcer._right_mha.out_proj.weight', 'encoder.layers.1.context_enforcer._context_mha.in_proj_bias', 'encoder.layers.5.context_enforcer._wrc.weight', 'encoder.layers.5.context_enforcer._left_mha.in_proj_weight', 'encoder.layers.5.context_enforcer_layer_norm.bias', 'encoder.layers.3.context_enforcer._right_mha.in_proj_weight', 'encoder.layers.3.context_enforcer._context_mha.in_proj_weight', 'encoder.layers.3.context_enforcer._wfc.bias', 'encoder.layers.3.context_enforcer_layer_norm.weight', 'encoder.layers.5.context_enforcer._context_mha.in_proj_bias', 'encoder.layers.3.context_enforcer._wrc.weight', 'encoder.layers.3.context_enforcer._context_mha.out_proj.weight', 'encoder.layers.5.context_enforcer._right_mha.in_proj_bias', 'encoder.layers.5.context_enforcer._wfc.weight', 'encoder.layers.1.context_enforcer._wrc.bias', 'encoder.layers.5.context_enforcer._wlc.bias', 'encoder.layers.3.context_enforcer._wfc.weight', 'encoder.layers.5.context_enforcer_layer_norm.weight', 'encoder.layers.5.context_enforcer._wlc.weight', 'encoder.layers.1.context_enforcer._context_mha.in_proj_weight', 'encoder.layers.1.context_enforcer._wlc.weight', 'encoder.layers.1.context_enforcer_layer_norm.weight', 'encoder.layers.1.context_enforcer._left_mha.out_proj.weight', 'encoder.layers.5.context_enforcer._context_mha.in_proj_weight', 'encoder.layers.3.context_enforcer._left_mha.in_proj_bias', 'encoder.layers.5.context_enforcer._right_mha.out_proj.bias', 'encoder.layers.3.context_enforcer_layer_norm.bias', 'encoder.layers.5.context_enforcer._right_mha.out_proj.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+/home/nlplab/anaconda3/envs/development/lib/python3.9/site-packages/transformers/optimization.py:407: FutureWarning: This implementation of AdamW is deprecated and will be removed in a future version. Use the PyTorch implementation torch.optim.AdamW instead, or set `no_deprecation_warning=True` to disable this warning
+  warnings.warn(
+Token indices sequence length is longer than the specified maximum sequence length for this model (1075 > 1024). Running this sequence through the model will result in indexing errors
+[W reducer.cpp:1300] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+{'loss': 4.0101, 'learning_rate': 1.3307644054126715e-06, 'epoch': 0.12}
+{'loss': 2.9869, 'learning_rate': 2.674970875526481e-06, 'epoch': 0.24}
+{'loss': 2.7983, 'learning_rate': 4.01917734564029e-06, 'epoch': 0.35}
+{'loss': 2.6765, 'learning_rate': 5.360695402813872e-06, 'epoch': 0.47}
+{'loss': 2.6034, 'learning_rate': 6.7049018729276815e-06, 'epoch': 0.59}
+{'loss': 2.5333, 'learning_rate': 8.049108343041492e-06, 'epoch': 0.71}
+{'loss': 2.4937, 'learning_rate': 9.3933148131553e-06, 'epoch': 0.82}
+{'loss': 2.4504, 'learning_rate': 1.0737521283269111e-05, 'epoch': 0.94}
+{'eval_loss': 2.120321273803711, 'eval_runtime': 70.1119, 'eval_samples_per_second': 161.656, 'eval_steps_per_second': 20.211, 'epoch': 1.0}
+{'loss': 2.4055, 'learning_rate': 1.208172775338292e-05, 'epoch': 1.06}
+{'loss': 2.3623, 'learning_rate': 1.342593422349673e-05, 'epoch': 1.18}
+{'loss': 2.337, 'learning_rate': 1.477014069361054e-05, 'epoch': 1.29}
+{'loss': 2.3162, 'learning_rate': 1.6114347163724348e-05, 'epoch': 1.41}
+{'loss': 2.2917, 'learning_rate': 1.7458553633838157e-05, 'epoch': 1.53}
+{'loss': 2.2667, 'learning_rate': 1.880276010395197e-05, 'epoch': 1.65}
+{'loss': 2.2418, 'learning_rate': 2.0146966574065778e-05, 'epoch': 1.76}
+{'loss': 2.2359, 'learning_rate': 2.1488484631239356e-05, 'epoch': 1.88}
+{'loss': 2.2235, 'learning_rate': 2.283269110135317e-05, 'epoch': 2.0}
+{'eval_loss': 1.9931390285491943, 'eval_runtime': 70.2296, 'eval_samples_per_second': 161.385, 'eval_steps_per_second': 20.177, 'epoch': 2.0}
+{'loss': 2.147, 'learning_rate': 2.4176897571466977e-05, 'epoch': 2.12}
+{'loss': 2.1377, 'learning_rate': 2.552110404158079e-05, 'epoch': 2.23}
+{'loss': 2.1386, 'learning_rate': 2.6865310511694595e-05, 'epoch': 2.35}
+{'loss': 2.127, 'learning_rate': 2.8209516981808407e-05, 'epoch': 2.47}
+{'loss': 2.1078, 'learning_rate': 2.9553723451922216e-05, 'epoch': 2.59}
+{'loss': 2.108, 'learning_rate': 3.089792992203602e-05, 'epoch': 2.71}
+{'loss': 2.1051, 'learning_rate': 3.223944797920961e-05, 'epoch': 2.82}
+{'loss': 2.0878, 'learning_rate': 3.358365444932342e-05, 'epoch': 2.94}
+{'eval_loss': 1.9240902662277222, 'eval_runtime': 70.0939, 'eval_samples_per_second': 161.697, 'eval_steps_per_second': 20.216, 'epoch': 3.0}
+{'loss': 2.0389, 'learning_rate': 3.492786091943723e-05, 'epoch': 3.06}
+{'loss': 1.9907, 'learning_rate': 3.626937897661081e-05, 'epoch': 3.18}
+{'loss': 1.9928, 'learning_rate': 3.761358544672462e-05, 'epoch': 3.29}
+{'loss': 1.9935, 'learning_rate': 3.895779191683843e-05, 'epoch': 3.41}
+{'loss': 1.993, 'learning_rate': 4.030199838695224e-05, 'epoch': 3.53}
+{'loss': 1.9985, 'learning_rate': 4.164620485706605e-05, 'epoch': 3.65}
+{'loss': 1.9816, 'learning_rate': 4.299041132717985e-05, 'epoch': 3.76}
+{'loss': 1.9947, 'learning_rate': 4.433461779729366e-05, 'epoch': 3.88}
+{'loss': 1.973, 'learning_rate': 4.5678824267407474e-05, 'epoch': 4.0}
+{'eval_loss': 1.893675446510315, 'eval_runtime': 69.9866, 'eval_samples_per_second': 161.945, 'eval_steps_per_second': 20.247, 'epoch': 4.0}
+{'loss': 1.8679, 'learning_rate': 4.7023030737521286e-05, 'epoch': 4.12}
+{'loss': 1.8771, 'learning_rate': 4.836723720763509e-05, 'epoch': 4.23}
+{'loss': 1.8919, 'learning_rate': 4.9711443677748904e-05, 'epoch': 4.35}
+{'loss': 1.8868, 'learning_rate': 5.1052961734922486e-05, 'epoch': 4.47}
+{'loss': 1.8896, 'learning_rate': 5.239716820503629e-05, 'epoch': 4.59}
+{'loss': 1.8902, 'learning_rate': 5.3741374675150103e-05, 'epoch': 4.7}
+{'loss': 1.8904, 'learning_rate': 5.5085581145263916e-05, 'epoch': 4.82}
+{'loss': 1.8917, 'learning_rate': 5.642978761537773e-05, 'epoch': 4.94}
+{'eval_loss': 1.8771077394485474, 'eval_runtime': 70.2626, 'eval_samples_per_second': 161.309, 'eval_steps_per_second': 20.167, 'epoch': 5.0}
+{'loss': 1.8263, 'learning_rate': 5.777399408549153e-05, 'epoch': 5.06}
+{'loss': 1.7637, 'learning_rate': 5.911820055560534e-05, 'epoch': 5.18}
+{'loss': 1.7774, 'learning_rate': 5.9751007310541174e-05, 'epoch': 5.29}
+{'loss': 1.7887, 'learning_rate': 5.902719135281202e-05, 'epoch': 5.41}
+{'loss': 1.791, 'learning_rate': 5.830337539508288e-05, 'epoch': 5.53}
+{'loss': 1.7922, 'learning_rate': 5.757955943735373e-05, 'epoch': 5.65}
+{'loss': 1.7945, 'learning_rate': 5.685574347962458e-05, 'epoch': 5.76}
+{'loss': 1.7889, 'learning_rate': 5.613192752189544e-05, 'epoch': 5.88}
+{'loss': 1.7961, 'learning_rate': 5.540811156416629e-05, 'epoch': 6.0}
+{'eval_loss': 1.8547335863113403, 'eval_runtime': 70.2621, 'eval_samples_per_second': 161.31, 'eval_steps_per_second': 20.167, 'epoch': 6.0}
+{'loss': 1.6471, 'learning_rate': 5.4684295606437135e-05, 'epoch': 6.12}
+{'loss': 1.649, 'learning_rate': 5.396047964870799e-05, 'epoch': 6.23}
+{'loss': 1.6661, 'learning_rate': 5.323666369097884e-05, 'epoch': 6.35}
+{'loss': 1.6672, 'learning_rate': 5.251284773324969e-05, 'epoch': 6.47}
+{'loss': 1.6676, 'learning_rate': 5.178903177552055e-05, 'epoch': 6.59}
+{'loss': 1.679, 'learning_rate': 5.10652158177914e-05, 'epoch': 6.7}
+{'loss': 1.6715, 'learning_rate': 5.0342847491977705e-05, 'epoch': 6.82}
+{'loss': 1.6724, 'learning_rate': 4.961903153424856e-05, 'epoch': 6.94}
+{'eval_loss': 1.8485217094421387, 'eval_runtime': 70.2143, 'eval_samples_per_second': 161.42, 'eval_steps_per_second': 20.181, 'epoch': 7.0}
+{'loss': 1.6001, 'learning_rate': 4.8895215576519416e-05, 'epoch': 7.06}
+{'loss': 1.5353, 'learning_rate': 4.817284725070572e-05, 'epoch': 7.17}
+{'loss': 1.5506, 'learning_rate': 4.744903129297658e-05, 'epoch': 7.29}
+{'loss': 1.5572, 'learning_rate': 4.6725215335247427e-05, 'epoch': 7.41}
+{'loss': 1.5649, 'learning_rate': 4.600139937751828e-05, 'epoch': 7.53}
+{'loss': 1.5688, 'learning_rate': 4.527903105170459e-05, 'epoch': 7.65}
+{'loss': 1.5709, 'learning_rate': 4.4555215093975443e-05, 'epoch': 7.76}
+{'loss': 1.5712, 'learning_rate': 4.383139913624629e-05, 'epoch': 7.88}
+{'loss': 1.5818, 'learning_rate': 4.310758317851714e-05, 'epoch': 8.0}
+{'eval_loss': 1.8518435955047607, 'eval_runtime': 70.046, 'eval_samples_per_second': 161.808, 'eval_steps_per_second': 20.23, 'epoch': 8.0}
+{'loss': 1.4405, 'learning_rate': 4.2383767220787996e-05, 'epoch': 8.12}
+{'loss': 1.4551, 'learning_rate': 4.1659951263058845e-05, 'epoch': 8.23}
+{'loss': 1.4588, 'learning_rate': 4.093758293724516e-05, 'epoch': 8.35}
+{'loss': 1.4665, 'learning_rate': 4.0213766979516007e-05, 'epoch': 8.47}
+{'loss': 1.4678, 'learning_rate': 3.948995102178686e-05, 'epoch': 8.59}
+{'loss': 1.4783, 'learning_rate': 3.876613506405771e-05, 'epoch': 8.7}
+{'loss': 1.4832, 'learning_rate': 3.804231910632856e-05, 'epoch': 8.82}
+{'loss': 1.4851, 'learning_rate': 3.731850314859942e-05, 'epoch': 8.94}
+{'eval_loss': 1.8604768514633179, 'eval_runtime': 70.0983, 'eval_samples_per_second': 161.687, 'eval_steps_per_second': 20.214, 'epoch': 9.0}
+{'loss': 1.4187, 'learning_rate': 3.659468719087027e-05, 'epoch': 9.06}
+{'loss': 1.3697, 'learning_rate': 3.587087123314112e-05, 'epoch': 9.17}
+{'loss': 1.3698, 'learning_rate': 3.5147055275411975e-05, 'epoch': 9.29}
+{'loss': 1.3879, 'learning_rate': 3.442323931768282e-05, 'epoch': 9.41}
+{'loss': 1.3843, 'learning_rate': 3.369942335995367e-05, 'epoch': 9.53}
+{'loss': 1.3901, 'learning_rate': 3.297560740222453e-05, 'epoch': 9.64}
+{'loss': 1.3946, 'learning_rate': 3.225179144449538e-05, 'epoch': 9.76}
+{'loss': 1.3975, 'learning_rate': 3.152797548676623e-05, 'epoch': 9.88}
+{'loss': 1.4023, 'learning_rate': 3.080560716095254e-05, 'epoch': 10.0}
+{'eval_loss': 1.872003436088562, 'eval_runtime': 70.1718, 'eval_samples_per_second': 161.518, 'eval_steps_per_second': 20.193, 'epoch': 10.0}
+{'loss': 1.292, 'learning_rate': 3.008323883513885e-05, 'epoch': 10.12}
+{'loss': 1.2983, 'learning_rate': 2.9359422877409703e-05, 'epoch': 10.23}
+{'loss': 1.3082, 'learning_rate': 2.8635606919680558e-05, 'epoch': 10.35}
+{'loss': 1.3105, 'learning_rate': 2.791179096195141e-05, 'epoch': 10.47}
+{'loss': 1.3161, 'learning_rate': 2.718797500422226e-05, 'epoch': 10.59}
+{'loss': 1.3155, 'learning_rate': 2.6464159046493114e-05, 'epoch': 10.7}
+{'loss': 1.3245, 'learning_rate': 2.5740343088763966e-05, 'epoch': 10.82}
+{'loss': 1.3261, 'learning_rate': 2.5016527131034815e-05, 'epoch': 10.94}
+{'eval_loss': 1.8858169317245483, 'eval_runtime': 69.9247, 'eval_samples_per_second': 162.089, 'eval_steps_per_second': 20.265, 'epoch': 11.0}
+{'loss': 1.2776, 'learning_rate': 2.4292711173305667e-05, 'epoch': 11.06}
+{'loss': 1.2266, 'learning_rate': 2.357034284749198e-05, 'epoch': 11.17}
+{'loss': 1.2361, 'learning_rate': 2.284652688976283e-05, 'epoch': 11.29}
+{'loss': 1.2475, 'learning_rate': 2.212271093203368e-05, 'epoch': 11.41}
+{'loss': 1.2473, 'learning_rate': 2.1400342606219994e-05, 'epoch': 11.53}
+{'loss': 1.2554, 'learning_rate': 2.0676526648490846e-05, 'epoch': 11.64}
+{'loss': 1.2554, 'learning_rate': 1.9952710690761694e-05, 'epoch': 11.76}
+{'loss': 1.2606, 'learning_rate': 1.922889473303255e-05, 'epoch': 11.88}
+{'loss': 1.2618, 'learning_rate': 1.8505078775303402e-05, 'epoch': 12.0}
+{'eval_loss': 1.9089932441711426, 'eval_runtime': 70.0472, 'eval_samples_per_second': 161.805, 'eval_steps_per_second': 20.229, 'epoch': 12.0}
+{'train_runtime': 45004.8822, 'train_samples_per_second': 68.008, 'train_steps_per_second': 1.417, 'train_loss': 1.7918654347198912, 'epoch': 12.0}

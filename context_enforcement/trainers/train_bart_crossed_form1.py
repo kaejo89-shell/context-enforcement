@@ -3,9 +3,9 @@ from typing import List
 
 os.environ["WANDB_DISABLED"] = "true"
 from context_enforcement.data.common import create_text_tokenizer, SmartCollator
-from context_enforcement.models.bart_context_enforcer import (
+from context_enforcement.models.bart_context_enforcer_2 import (
     BartForContextualRecovery,
-    BartForContextualRecoveryMultiLoss
+    BartForContextualRecoveryMultiLoss,
 )
 from context_enforcement.models.common import CustomTrainer, get_training_arguments
 from context_enforcement.trainers.common import (

@@ -3,14 +3,13 @@ from typing import List
 
 os.environ["WANDB_DISABLED"] = "true"
 from context_enforcement.data.common import create_text_tokenizer, SmartCollator
-from context_enforcement.models.bart_context_enforcer import (
+from context_enforcement.models.bart_context_selection import (
     BartForContextualRecovery,
-    BartForContextualRecoveryMultiLoss
+    BartForContextualRecoveryMultiLoss,
 )
 from context_enforcement.models.common import CustomTrainer, get_training_arguments
 from context_enforcement.trainers.common import (
     add_context_enforcement_args,
-    compute_eval_metrics_func,
     get_dataset_specified_tasks,
     create_training_args,
 )
@@ -36,7 +35,6 @@ def model_init(
     context_sampling_bounds=(0.1, 0.45),
     device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
     is_baseline=False,
-    from_scratch=False
 ):
     def build_model():
         bart_config = BartConfig.from_pretrained(model_base)
@@ -54,16 +52,11 @@ def model_init(
                 model_class_name = BartForContextualRecoveryMultiLoss
             else:
                 model_class_name = BartForContextualRecovery
-        
-        if not from_scratch:
-            generator = model_class_name.from_pretrained(
-                model_base,
-                config=bart_config,
-            )
-        else:
-            generator = model_class_name(
-                config=bart_config,
-            )
+
+        generator = model_class_name.from_pretrained(
+            model_base,
+            config=bart_config,
+        )
 
         # update the tokens
         generator.resize_token_embeddings(vocab_size)  # type: ignore
@@ -114,11 +107,8 @@ if __name__ == "__main__":
         context_max_len=context_max_len,
         context_sampling_bounds=context_sampling_bounds,
         context_max_len_list=context_max_len_list,
-        from_scratch=arguments.from_scratch
-        
     )
-
-    training_arguments = get_training_arguments(**configs)
+    
     os.makedirs(os.path.join(arguments.output_dir,
                                arguments.run_id),exist_ok=True)
     train_args_path = os.path.join(arguments.output_dir,
@@ -127,22 +117,22 @@ if __name__ == "__main__":
         arguments,
         open(train_args_path, "wb"),
     )
-    metrics_func = compute_eval_metrics_func(tokenizer)
+
+
+    training_arguments = get_training_arguments(**configs)
     custom_trainer = CustomTrainer(
         model=model_builder(),
         args=training_arguments,
         train_dataset=train_dataset,
         eval_dataset=test_dataset,
-        # compute_metrics= metrics_func,
         data_collator=SmartCollator(
             pad_token_id=train_dataset.tokenizer.pad_token_id,
             context_max_len=context_max_len,
             context_sampling_bounds=context_sampling_bounds,
             max_len=arguments.max_seq_len,
         ),  # type: ignore
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=20)],
         addition_input_keys=["context_boundary"] if not is_baseline else [],
     )
 
-    custom_trainer.train(ignore_keys_for_eval=['context_boundary'])
-
+    custom_trainer.train()
